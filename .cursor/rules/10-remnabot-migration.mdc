@@ -1,0 +1,133 @@
+---
+description: Production cutover governance — topology, Alembic graft, RC isolation (authoritative on remnabot1)
+globs: "**"
+alwaysApply: true
+---
+
+# Production cutover governance
+
+Read first: `docs/superpowers/specs/2026-08-29-governance-topology-audit-design.md` and `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md` (+ errata sibling).
+
+Do not infer Git remotes, cabinet paths, or Alembic strategy from Architecture A without the errata file.
+
+---
+
+## 1. Six identities
+
+| # | Identity | Verified path / remote |
+|---|---|---|
+| 1 | Production reference | `/opt/remnabot` · `origin` = `k4lantar4/remnabot` · 3.60.0 · READ-ONLY |
+| 2 | Maintained bot | `/opt/remnabot1` · `origin` = `k4lantar4/remnabot1` · 4.2.0 |
+| 3 | Upstream bot | `BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot` |
+| 4 | Upstream working tree | `/opt/bot` · READ-ONLY · never compose-up |
+| 5 | RC runtime | `bot-v4` / `91.107.144.95` |
+| 6 | Production runtime | `Bot` / `91.107.249.43` · live app at `/opt/bot-remnawave` |
+
+**Cabinet:** `/opt/cabinet` · `k4lantar4/cabinet` — independent; never merge into remnabot1.
+
+**Forbidden names:** `cabinet1`, `/opt/cabinet1`, setting remnabot1 `origin` to `k4lantar4/remnabot`.
+
+---
+
+## 2. Tree classes
+
+| Class | Trees | Allowed |
+|---|---|---|
+| APPLICATION | `/opt/remnabot1`, `/opt/cabinet` | Implement, test, commit on `prod-cutover` |
+| INFRASTRUCTURE | `/opt/caddy`, `/opt/remnawave` | Orchestration; no business logic |
+| PRODUCTION REFERENCE | `/opt/remnabot`; `/opt/bot-remnawave` on Bot | Read-only inspect |
+| UPSTREAM REFERENCE | `/opt/bot` | Never compose-up, restore, or implement |
+
+Production inspection: `ssh bot` (read-only during RC). Production modification only in explicit M8 cutover with user authorization.
+
+---
+
+## 3. Git topology (verified — re-check at execution)
+
+**remnabot1**
+
+    origin   = https://github.com/k4lantar4/remnabot1.git
+    upstream = https://github.com/BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot.git
+    remnabot = https://github.com/k4lantar4/remnabot.git   # custom reference remote only
+
+Do **not** retarget `origin` to `remnabot`. Work on branch `prod-cutover`; keep `main` tracking upstream.
+
+**cabinet**
+
+    origin   = https://github.com/k4lantar4/cabinet.git
+    upstream = https://github.com/BEDOLAGA-DEV/bedolaga-cabinet.git
+
+Never `git init` on cabinet. Never force-push.
+
+---
+
+## 4. Authority hierarchy
+
+1. Live production + verified dumps
+2. MVP plan + governance audit design + plan errata (**Alembic authority**)
+3. Architecture A spec + `-errata.md` (DNS, Telegram, C2C, rollback)
+4. This rule file
+5. `/opt/remnabot/.cursor/rules/*` (historical dev only)
+
+---
+
+## 5. Forbidden actions (DAG edges)
+
+1. No remnabot1 app process and no `alembic upgrade` / `stamp` on any volume containing the restored production dump until M4-T0 PASS (`alembic heads` = remnabot `0104` traffic clamp; no `0104_remnawave_numeric_id.py` on live graph).
+2. Never `docker compose up` / restore against production or legacy volumes (`bot-remnawave_postgres_data`, `remnawave-db-data`, etc.). Rehearsal uses only `rehearsal_*` / `cutover_*` names.
+3. Never start the production-token bot until the old production bot is stopped (M8).
+4. Never apply remnabot1 upstream live-graph `0088–0110` to a remnabot-lineage `0103` database.
+
+Set `SKIP_MIGRATION=true` on any container touching a restored DB before M4-T0.
+
+---
+
+## 6. Alembic (graft — binding)
+
+Production bot DB is remnabot-lineage **`0103`**. remnabot1 disk holds upstream **`0088–0110`** with **colliding IDs** from `0088`.
+
+**Required:** archive remnabot1 `0088–0110`; copy remnabot `0088–0104` in the same commit; chain `0111+` from remnabot `0104`.
+
+**§18.1 cutover exception:** grafting remnabot `0088–0104` is authorized. “Never reuse donor revision IDs” forbids copying **upstream `/opt/bot`** migrations onto production data — not production-lineage recovery.
+
+**Fallback:** if M4-T0 fails → `PLAN REVISION REQUIRED: Alembic graft failed M4-T0` (re-ID from `0103` only).
+
+---
+
+## 7. Remnawave promotion
+
+- Rehearsal proof: pin `backend:2.8.1` digest → upgrade copy to verified 3.x **candidate digest** on PG **17.6**
+- RC dev stack (`backend:3`, PG 18.4, `:latest`) is **non-promotable** until rehearsed with pinned digests
+- Never deploy implicit `latest`, `backend:3`, or unreviewed branches to production
+
+---
+
+## 8. MVP protected behavior
+
+Blockers if regressed: C2C (G8 hard gate), FA fallback, Toman dual-scale, wholesale/partner, Telegram single-consumer, cabinet API, subscription/purchase flows.
+
+C2C on RC requires isolated test admin chat (P1). Never use production C2C admin chat from RC.
+
+---
+
+## 9. Caddy
+
+Canonical target: `/opt/remnabot1/deploy/caddy/` (when created). Live `/opt/caddy/Caddyfile` is a deployment of that file. Validate before reload; SHA-256 drift check after deploy.
+
+RC hostnames: `staging-host-*` only until cutover. Production names absent from RC until M8.
+
+---
+
+## 10. Secrets and env
+
+Classify env keys A–E per Architecture A §8.1. RC must not contain class D/E (production token, prod C2C chat, prod payment creds, prod JWT).
+
+Report fingerprints only — never commit or print secret values.
+
+---
+
+## 11. Plan revision gate
+
+Stop and emit `PLAN REVISION REQUIRED: <reason>` when live state contradicts design (Git topology, Alembic head, RW migration behavior, missing P1, volume ambiguity).
+
+Do not silently redesign during implementation.

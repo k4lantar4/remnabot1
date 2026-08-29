@@ -51,6 +51,11 @@
 !.github/
 !.github/**
 
+# Migration governance (whitelist single rule; legacy 10-remnabot.mdc stays local)
+!.cursor/
+!.cursor/rules/
+!.cursor/rules/10-remnabot-migration.mdc
+
 # ========== BLACKLIST: игнорируемые внутри папок ==========
 
 # Python

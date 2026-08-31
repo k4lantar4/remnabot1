@@ -2,7 +2,8 @@
 
 Date: 2026-08-31  
 Host: RC (`bot-v4` / `91.107.144.95`)  
-Task: M1-T3 · Authority: MVP plan `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`  
+Task: M1-T3 · **Revision 2026-08-31:** RC public URLs from live `/opt/remnabot1/.env` (`panel.rookari.com`), not `staging-host-*`.  
+Authority: MVP plan `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`  
 Branch: `prod-cutover` (re-check HEAD at commit)
 
 ## Goal
@@ -17,7 +18,7 @@ Classify important production env keys A–E. Fill gitignored RC env so class D/
 | Production Remnawave env | `/opt/remnawave/.env` via `ssh bot` | JWT / domains / RW Telegram |
 | Production subscription env | `/opt/remnawave/.env.subscription` via `ssh bot` | `SUB` prefix / panel URL |
 | Production Caddy env | `/opt/caddy-remnawave/.env` via `ssh bot` | Class D pgAdmin / panel hostnames |
-| RC sandbox bot env | `/opt/remnabot1/.env` | **Dev sandbox, not production.** Source of the **test** `BOT_TOKEN` only |
+| RC sandbox bot env | `/opt/remnabot1/.env` | **Working RC.** Public-URL source (`panel.rookari.com`). Also the **test** `BOT_TOKEN` source |
 | RC rehearsal bot env | `/opt/remnabot1/.env.rehearsal` | Gitignored; filled this task |
 | RC rehearsal RW env | `/opt/remnabot1/.env.rehearsal-rw` | Gitignored; class-C JWT + RC hostnames |
 | Cutover stub | `/opt/remnabot1/.env.cutover` | Gitignored; class-D **key names only**, empty values; not referenced by rehearsal `env_file` |
@@ -57,17 +58,17 @@ RC action: **preserve** = copy non-secret production behavior; **override** = cl
 | `BOT_USERNAME` | B | `moonvpn_bot` | override | `mrj7_bot` (getMe on test token) |
 | `ADMIN_IDS` | D-adjacent | fp `f3342fe3d550dd90` | override | `0` |
 | `BOT_RUN_MODE` | B | `webhook` | override | `polling` |
-| `WEBHOOK_URL` | B / E (prod URL) | `https://hooks.rookari.com` | override | `https://staging-host-hooks.rookari.com` |
+| `WEBHOOK_URL` | B / E (prod URL) | `https://hooks.rookari.com` | override | `panel.rookari.com` (live `.env`) |
 | `WEBHOOK_PATH` | A | `/webhook` | preserve | `/webhook` |
 | `WEBHOOK_SECRET_TOKEN` | D | fp `45ba583af2ce63f3` | omit value | empty (polling) |
 | `WEBHOOK_IP` | B | absent | omit | absent |
 | `CABINET_ENABLED` | A | `true` | preserve | `true` |
-| `CABINET_URL` | B | `https://cabinet.rookari.com` | override | `https://staging-host-cabinet.rookari.com` |
-| `CABINET_ALLOWED_ORIGINS` | B | `https://cabinet.rookari.com` | override | `https://staging-host-cabinet.rookari.com` |
+| `CABINET_URL` | B | `https://cabinet.rookari.com` | override | `https://panel.rookari.com` |
+| `CABINET_ALLOWED_ORIGINS` | B | `https://cabinet.rookari.com` | override | `*` (live `.env`) |
 | `CABINET_JWT_SECRET` | C (RC) / D (prod) | fp `818cf61ccf8f100d` | generate | fp `6e66e417433351da` |
-| `WEB_API_ALLOWED_ORIGINS` | B | `*` | override | `https://staging-host-cabinet.rookari.com` |
+| `WEB_API_ALLOWED_ORIGINS` | B | `*` | preserve (live RC) | `*` |
 | `WEB_API_ENABLED` | A | `true` | preserve | `true` |
-| `MINIAPP_CUSTOM_URL` | B | `https://cabinet.rookari.com` | override | `https://staging-host-cabinet.rookari.com` |
+| `MINIAPP_CUSTOM_URL` | B | `https://cabinet.rookari.com` | override | `panel.rookari.com` |
 | `PRODUCTION_BOT_TOKEN_FINGERPRINT` | B | n/a | set | `818cf61ccf8f100d` |
 | `ALLOW_PRODUCTION_BOT_TOKEN` | B | absent | set | `false` |
 
@@ -97,7 +98,7 @@ Toman dual-scale is **code** (`format_price` / display helpers), not an env key.
 
 | Key | Class | Production | RC action |
 |---|---|---|---|
-| `C2C_ENABLED` | B | `true` | **override `false`** (P1 unknown) |
+| `C2C_ENABLED` | B | `true` | **`true`** (live `.env`; admin chat empty). Empty chat is **not** G8 PASS |
 | `C2C_ADMIN_CHAT_ID` | E | key present, **value empty** | **omit** (do not invent; do not copy) |
 | `C2C_CARDS` | E-adjacent (PAN) | present, fp `0bc52870ca6942f9` | **omit** |
 | `C2C_DISPLAY_NAME` | A | `کارت به کارت 💳` | preserve |
@@ -122,9 +123,9 @@ G8 remains INCOMPLETE until an isolated test admin chat exists. Restored `c2c_re
 |---|---|---|---|
 | `JWT_AUTH_SECRET` | C / D | fp `75f5b7ae8dc28251` | generated fp `e12d8fd465f7a591` |
 | `JWT_API_TOKENS_SECRET` | C / D | fp `c1da9fba4aed4f31` | generated fp `826aa21cf0873d9c` |
-| `FRONT_END_DOMAIN` | B | `master.rookari.com` | `staging-host-master.rookari.com` (**not** `*`) |
-| `PANEL_DOMAIN` | B | `master.rookari.com` | `staging-host-master.rookari.com` |
-| `SUB_PUBLIC_DOMAIN` | B | `sub.rookari.com/sub` | `staging-host-sub.rookari.com/sub` |
+| `FRONT_END_DOMAIN` | B | `master.rookari.com` | `*` (live `/opt/remnawave/.env`) |
+| `PANEL_DOMAIN` | B | `master.rookari.com` | `rw.rookari.com` (live RW env) |
+| `SUB_PUBLIC_DOMAIN` | B | `sub.rookari.com/sub` | `config.rookari.com/sub` (live RW env) |
 | `IS_TELEGRAM_NOTIFICATIONS_ENABLED` | B | `true` | `false` |
 | `TELEGRAM_BOT_TOKEN` (RW) | E | fp `be30421b5770d1ff` | **omit** |
 | `CLOUDFLARE_TOKEN` | D | fp `f4bf9a2aea8bdfe6` | **omit** |
@@ -170,32 +171,32 @@ Production enabled **money** method is C2C only. Provider secrets that exist whi
 
 Not listed in rehearsal `env_file`.
 
-Cabinet Vite: `VITE_API_URL=/api` remains in `docker-compose.rehearsal.yml` (unchanged this task). `VITE_TELEGRAM_BOT_USERNAME` build-arg is still `rehearsal_placeholder_bot`; runtime `BOT_USERNAME=mrj7_bot` is in `.env.rehearsal`.
+Cabinet Vite: `VITE_API_URL=/api` remains. `VITE_TELEGRAM_BOT_USERNAME=mrj7_bot` in `docker-compose.rehearsal.yml`.
 
 ## Verification
 
 ```bash
 # 1) RC BOT_TOKEN fingerprint ≠ production; D/E keys absent (python inspect)
-# 2) Production hostnames as live app URLs (staging-host-* parent domain OK)
+# 2) Do not use `staging-host-*` as live RC app URLs (`panel.rookari.com` is the source)
 # 3) docker compose config (no up; --profile bot-app only to render rehearsal_bot env)
 docker compose -p rehearsal -f docker-compose.rehearsal.yml config
 docker compose -p rehearsal -f docker-compose.rehearsal.yml --profile bot-app config
 docker compose -p rehearsal -f deploy/remnawave/docker-compose.rehearsal.yml --env-file .env.rehearsal-rw config
 ```
 
-Outcomes (2026-08-31, this host):
+Outcomes (2026-08-31, this host; **revised same day** to match live `.env`):
 
 - Bare bot compose config exit 0 (profile hides `rehearsal_bot` — expected)
-- `--profile bot-app` config exit 0: `BOT_TOKEN` fp `458863639bbe6d6b` ≠ `PRODUCTION_BOT_TOKEN_FINGERPRINT=818cf61ccf8f100d`; `ALLOW_PRODUCTION_BOT_TOKEN=false`; `C2C_ENABLED=false`; `C2C_ADMIN_CHAT_ID` / `C2C_CARDS` absent; `WEB_API_ALLOWED_ORIGINS` not `*`; `WEBHOOK_URL=https://staging-host-hooks.rookari.com`; `REMNAWAVE_API_URL=http://rehearsal_rw:3000`; `SKIP_MIGRATION=true`
-- RW compose config exit 0: `FRONT_END_DOMAIN=staging-host-master.rookari.com` (not `*`); `SUB_PUBLIC_DOMAIN=staging-host-sub.rookari.com/sub`; `IS_TELEGRAM_NOTIFICATIONS_ENABLED=false`; JWT fps `e12d8fd465f7a591` / `826aa21cf0873d9c`; no `TELEGRAM_BOT_TOKEN` / `CLOUDFLARE_TOKEN`
-- No unprefixed production `hooks.rookari.com` / `cabinet.rookari.com` / `master.rookari.com` / `sub.rookari.com` in rendered config
+- `--profile bot-app` config: `BOT_TOKEN` fp `458863639bbe6d6b` ≠ `PRODUCTION_BOT_TOKEN_FINGERPRINT=818cf61ccf8f100d`; `ALLOW_PRODUCTION_BOT_TOKEN=false`; `C2C_ENABLED=true` (live `.env`; admin chat empty); `WEB_API_ALLOWED_ORIGINS=*`; `WEBHOOK_URL=panel.rookari.com`; `CABINET_URL=https://panel.rookari.com`; `REMNAWAVE_API_URL=http://rehearsal_rw:3000`; `SKIP_MIGRATION=true`
+- RW compose config: `FRONT_END_DOMAIN=*`; `PANEL_DOMAIN=rw.rookari.com`; `SUB_PUBLIC_DOMAIN=config.rookari.com/sub`; `IS_TELEGRAM_NOTIFICATIONS_ENABLED=false`; JWT fps `e12d8fd465f7a591` / `826aa21cf0873d9c`; no `TELEGRAM_BOT_TOKEN` / `CLOUDFLARE_TOKEN`
+- No production `hooks.rookari.com` / `cabinet.rookari.com` as RC app URLs; no `staging-host-*` in rehearsal env public URLs
 - `WEBHOOK_IP` absent
 - Class E payment tokens absent from `.env.rehearsal` / `.env.rehearsal-rw`
 - No `compose up`; no alembic; no restore
 
 ## P1
 
-Isolated C2C test admin chat: **UNKNOWN**. `C2C_ENABLED=false`. G8 incomplete ⇒ not MVP-VERIFIED.
+Isolated C2C test admin chat: **UNKNOWN**. Live RC `C2C_ENABLED=true` with empty `C2C_ADMIN_CHAT_ID`. G8 incomplete ⇒ not MVP-VERIFIED.
 
 ## Notes / non-blockers
 

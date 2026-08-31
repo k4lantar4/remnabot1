@@ -76,7 +76,7 @@ services:
       POSTGRES_USER: remnawave_user
       POSTGRES_PASSWORD: rehearsal_bot_pg_placeholder
       REDIS_URL: 'redis://rehearsal_bot_redis:6379/0'
-      WEB_API_ALLOWED_ORIGINS: 'https://staging-host-cabinet.rookari.com'
+      WEB_API_ALLOWED_ORIGINS: '*'
     ports:
       - '127.0.0.1:8081:8080'
     networks:
@@ -88,7 +88,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-        VITE_TELEGRAM_BOT_USERNAME: rehearsal_placeholder_bot
+        VITE_TELEGRAM_BOT_USERNAME: mrj7_bot
         VITE_APP_NAME: Rehearsal Cabinet
         VITE_APP_LOGO: V
     container_name: rehearsal_cabinet_frontend

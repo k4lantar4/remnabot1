@@ -61,7 +61,7 @@ Live `/opt/caddy/Caddyfile` includes legacy comment referencing `cabinet1` on `p
 | `rehearsal_*` / `cutover_*` volumes | still **absent** |
 | RC volumes | `remnabot1_postgres_data`, `remnabot1_redis_data`, `remnawave-db-data`, `caddy-ssl-data`, `valkey-socket` — all **forbidden** for restore |
 | Running sandbox | `remnabot1-bot` + `postgres:15-alpine`; RW `backend:3` + PG 18.4 + sub `:latest` — **non-promotable** |
-| RC Caddy `staging-host-*` | **none** (unlike Bot) |
+| RC Caddy `staging-host-*` | **none** (unlike Bot). Operational RC public hostname is `panel.rookari.com` |
 | Bot dump SHA-256 | `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` (unchanged) |
 | RW dump SHA-256 | `11935de69fc6dc318419753916ff840f950f5b4be7a27be46e2ccf2142347377` (unchanged) |
 

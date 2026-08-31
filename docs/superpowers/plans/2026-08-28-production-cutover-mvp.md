@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]` / `- [x]`) syntax. Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS.
 >
-> **Plan updated 2026-08-31.** **Checkpoint M0 complete** (T0–T6 evidence + tag committed on `prod-cutover`). Application code unchanged. **Do not execute M1+ until the user explicitly says «شروع M1»** (or equivalent "start M1").
+> **Plan updated 2026-08-31.** **Checkpoint M0 complete** (T0–T6 evidence + tag committed on `prod-cutover`). **Checkpoint M1.1 and M1.2 complete.** **RC public hostname revision** applied (`panel.rookari.com`). **Do not execute M2+ until the user explicitly says so.** M1-T4 remains cancelled.
+>
+> **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
 > **This file is the single authority.** Specs/errata siblings were deleted on purpose. Binding facts from Architecture A, architecture errata, plan errata E1–E7, and the governance audit are inlined below. Executors do not need deleted files.
 
@@ -82,7 +84,7 @@ Bot dump `COPY alembic_version` = `0103`. `c2c_receipts` present. **P6 SATISFIED
 | RW | `remnawave/backend:2.8.1`, PG `postgres:17.6`, sub `remnawave/subscription-page:7.2.6` |
 | C2C | enabled (env key present; value not recorded) |
 
-Prod Caddy already has `staging-host-{hooks,cabinet,miniapp,sub}.rookari.com` (no `staging-host-master`). **E5 still binding.**
+Prod Caddy has `staging-host-{hooks,cabinet,miniapp,sub}.rookari.com` server blocks (no `staging-host-master`). Those names are **not** the operational RC. **E5 (revised):** RC public hostname is `panel.rookari.com`.
 
 ### RC runtime (non-promotable sandbox)
 
@@ -90,7 +92,7 @@ Running: `remnawave_bot`=`remnabot1-bot` (compose project `remnabot1` / `/opt/re
 
 RC volumes: `remnabot1_postgres_data`, `remnabot1_redis_data`, `remnawave-db-data`, `caddy-ssl-data`, `valkey-socket`. **All forbidden for restore.** This sandbox is **not** G3 evidence.
 
-RC `/opt/caddy/Caddyfile` has **no** `staging-host-*` server blocks (unlike Bot). `/opt/cabinet1` **absent**.
+RC `/opt/caddy/Caddyfile` has **no** `staging-host-*` server blocks (unlike Bot). RC **does** serve `https://panel.rookari.com` (`/api/*` → `remnawave_bot:8080`, else cabinet). Live bot env `/opt/remnabot1/.env` uses `CABINET_URL=https://panel.rookari.com`, `WEBHOOK_URL=panel.rookari.com`, `BOT_RUN_MODE=polling`. `/opt/cabinet1` **absent**.
 
 ---
 
@@ -102,7 +104,7 @@ RC `/opt/caddy/Caddyfile` has **no** `staging-host-*` server blocks (unlike Bot)
 | 2 | **Maintained repository (bot)** | `/opt/remnabot1` · `origin` = `https://github.com/k4lantar4/remnabot1.git` · `main` = **4.2.0** @ `89fa7dc5` · work branch `prod-cutover` @ `2877a28f` (checkpoint HEAD; governance seed `a168a817` 2026-08-31) | Final custom bot **code** authority after ports. Own Git history and release lifecycle |
 | 3 | **Upstream repository (bot)** | `BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot` | Official bot upstream. Moving target. Fetch/compare only |
 | 4 | **Upstream working tree (bot)** | `/opt/bot` · `origin` = official upstream · HEAD identical to remnabot1 `main` `89fa7dc5` · dirty: `docker-compose.yml` | Local read-only clone of upstream. **Not** canonical. Never `compose up`, never restore, never implement here |
-| 5 | **RC runtime** | `bot-v4` / `91.107.144.95` · rehearsal compose + new volumes · test Telegram token · `staging-host-*` | Isolated rehearsal. Current `remnabot1` compose stack is a **dev sandbox**, not rehearsal |
+| 5 | **RC runtime** | `bot-v4` / `91.107.144.95` · test Telegram token · public hostname `panel.rookari.com` (live `/opt/remnabot1/.env`) | Working RC sandbox is the **running** remnabot1 compose. Isolated rehearsal compose is a **separate** stack (not started until M4-T0). Do not use `staging-host-*` as RC env URLs |
 | 6 | **Production runtime (today)** | `Bot` / `91.107.249.43` · live app **`/opt/bot-remnawave`** · frozen 3.60 / 2.8.1 after cutover | Live until cutover; then rollback target |
 
 **Cabinet (separate maintained application):**
@@ -217,15 +219,15 @@ Rehearsal must either:
 
 M3-T1/G3 evidence must come from the rehearsal-restore track, not the live RC sandbox. PG 17→18 is a **separate** track; do not combine with 2.8→3.x in one window.
 
-### E5. Production Caddy `staging-host-*`
+### E5. RC public hostname is `panel.rookari.com` (not `staging-host-*`)
 
-**VERIFIED 2026-08-31:** Bot `/opt/caddy-remnawave/Caddyfile` already routes `staging-host-{hooks,cabinet,miniapp,sub}.rookari.com`. RC Caddy has **no** those blocks.
+**VERIFIED 2026-08-31:** Bot `/opt/caddy-remnawave/Caddyfile` has `staging-host-{hooks,cabinet,miniapp,sub}` server blocks. RC `/opt/caddy/Caddyfile` has **no** those blocks. RC **does** serve `https://panel.rookari.com` (`/api/*` → `remnawave_bot:8080`, else cabinet).
 
-M1-T4 on RC must:
+**Operator binding:** staging is not the operational RC. Live bot env `/opt/remnabot1/.env` is the RC public-URL source (`CABINET_URL=https://panel.rookari.com`, `WEBHOOK_URL=panel.rookari.com`, polling). The running remnabot1 container is the working RC.
 
-- not add production application hostnames (`cabinet.rookari.com`, `hooks.rookari.com`, …) to RC Caddy,
-- confirm DNS for `staging-host-*` points to **RC** (`91.107.144.95`) before HTTP-01,
-- **not duplicate** prod staging routes if DNS still targets Bot.
+DNS A records named `staging-host-*` currently resolve to RC (`91.107.144.95`) but have no RC Caddy site. Do **not** put those names in RC env. Do **not** HTTP-01 them. Do **not** duplicate Bot’s staging blocks. Do not delete those Cloudflare records in M1 (P2 UNKNOWN).
+
+M1-T4 as originally written (**author `staging-host-*` on RC**) is **cancelled**. Leave live RC Caddy unchanged in M1. Public RC name remains `panel.rookari.com`. Production application names stay off RC Caddy until M8.
 
 ### E6. Governance artifacts (Checkpoint M0 complete)
 
@@ -257,18 +259,19 @@ Production `.env` is the **behavioral reference**, not a file to copy blindly. N
 
 | Variable | RC value shape |
 |---|---|
-| `BOT_TOKEN` | existing **test** token only |
-| `BOT_RUN_MODE` | `polling` or `webhook` |
-| `WEBHOOK_URL` | `https://staging-host-hooks.rookari.com` if webhook; never production hooks URL |
-| `WEBHOOK_SECRET_TOKEN` | RC-only secret, or empty if polling |
-| `CABINET_URL` | `https://staging-host-cabinet.rookari.com` |
-| `WEB_API_ALLOWED_ORIGINS` | RC origins only (not `*`) |
-| `C2C_ENABLED` | `true` only with isolated test admin chat; else `false` |
-| `C2C_ADMIN_CHAT_ID` | test chat or unset |
-| Remnawave `FRONT_END_DOMAIN` / `PANEL_DOMAIN` | RC master hostname |
-| Remnawave `SUB_PUBLIC_DOMAIN` | RC sub hostname + path |
-| `IS_TELEGRAM_NOTIFICATIONS_ENABLED` | false, or true only with **non-production** RW Telegram token |
-| `REMNAWAVE_API_URL` | docker-internal to **rehearsal** panel, not production |
+| `BOT_TOKEN` | existing **test** token only (live `/opt/remnabot1/.env`) |
+| `BOT_RUN_MODE` | `polling` (live `.env`; do not switch to webhook unless the user asks) |
+| `WEBHOOK_URL` | `panel.rookari.com` (live `.env`). Never `https://hooks.rookari.com` |
+| `WEBHOOK_SECRET_TOKEN` | empty while polling |
+| `CABINET_URL` | `https://panel.rookari.com` |
+| `WEB_API_ALLOWED_ORIGINS` | `*` (live `.env`; working RC) |
+| `CABINET_ALLOWED_ORIGINS` | `*` (live `.env`) |
+| `C2C_ENABLED` | `true` (live `.env`). `C2C_ADMIN_CHAT_ID` empty. Do not copy a production admin chat id |
+| Remnawave `PANEL_DOMAIN` | `rw.rookari.com` (live `/opt/remnawave/.env`) |
+| Remnawave `FRONT_END_DOMAIN` | `*` (live RW env) |
+| Remnawave `SUB_PUBLIC_DOMAIN` | `config.rookari.com/sub` (live RW env) |
+| `IS_TELEGRAM_NOTIFICATIONS_ENABLED` | `false` unless a **non-production** RW Telegram token exists |
+| `REMNAWAVE_API_URL` | live sandbox: `http://remnawave:3000`. Isolated rehearsal compose only: `http://rehearsal_rw:3000` |
 
 **C — Generated for RC:** passwords for new PG volumes; RC `CABINET_JWT_SECRET`; RC webhook secret if webhook mode.
 
@@ -278,9 +281,11 @@ Store D in `.env.cutover` that is **not** referenced by RC `env_file`. Load only
 
 **E — Must never enter RC:** production `BOT_TOKEN` before cutover; production webhook URL while RC is running; production `C2C_ADMIN_CHAT_ID`; production payment provider API tokens/secrets; production Remnawave Telegram token.
 
-Cabinet: `VITE_API_URL=/api` (relative) remains. `VITE_TELEGRAM_BOT_USERNAME` on RC is the **test** bot username.
+Cabinet: `VITE_API_URL=/api` (relative) remains. `VITE_TELEGRAM_BOT_USERNAME` on RC is the **test** bot username (`mrj7_bot`).
 
 RC compose must fail closed if `BOT_TOKEN` fingerprint equals the known production fingerprint (M1-T2).
+
+**Two stacks (do not conflate):** live remnabot1 sandbox uses `/opt/remnabot1/.env` and `REMNAWAVE_API_URL=http://remnawave:3000` on `panel.rookari.com` (already running — do not rewrite that `.env` for cutover work). Isolated rehearsal compose uses gitignored `.env.rehearsal` with the **same public URLs** and `REMNAWAVE_API_URL=http://rehearsal_rw:3000` (do not start `rehearsal_bot` until M4-T0).
 
 ### Cutover Caddy (five production blocks)
 
@@ -296,7 +301,7 @@ Do not add `pgadmin`/`admin`/`rw`/`config`/`panel` as app routes. HTTP-01 issues
 
 ### Telegram isolation
 
-**RC:** existing separate test token only. Never `setWebhook` / `deleteWebhook` / `getUpdates` with the production token from RC. RC webhook, if used, only `https://staging-host-hooks.rookari.com` + `/webhook`. `WEBHOOK_IP` stays unset.
+**RC:** existing separate test token only. Never `setWebhook` / `deleteWebhook` / `getUpdates` with the production token from RC. RC uses **polling** and `WEBHOOK_URL=panel.rookari.com` per live `/opt/remnabot1/.env`. Never `https://hooks.rookari.com`. `WEBHOOK_IP` stays unset.
 
 **Cutover Telegram order:**
 
@@ -317,6 +322,8 @@ C2C is Telegram-admin, not an HTTP callback. Production enabled method is **only
 RC may enable C2C **only if all** of: test Telegram bot (not production token); `C2C_ADMIN_CHAT_ID` is a **test** chat, never the production admin chat; restored production `c2c_receipts` data is allowed (historical rows).
 
 If a truly isolated test admin chat cannot be established (P1 missing): do **not** fake PASS. G8 INCOMPLETE ⇒ **MVP-VERIFIED = NO-GO**. Do not post RC receipts into the production admin chat.
+
+**Operator binding 2026-08-31:** live `/opt/remnabot1/.env` has `C2C_ENABLED=true` and empty `C2C_ADMIN_CHAT_ID`. Match that in RC env. Empty admin chat is **not** G8 PASS.
 
 Protected columns/tables: `c2c_receipts` and related remnabot `0088`/`0094` fields. Grafted graph must not drop them.
 
@@ -370,7 +377,7 @@ A gate is PASS only with evidence. “Build succeeded” is not PASS.
 | G6 Backfill | After 3.x + 0111 | sample `remnawave_id` matches panel `users.id` |
 | G7 Telegram RC | Continuous | production `getWebhookInfo` still production URL; RC uses test token |
 | G8 C2C | RC | isolated chat **PASS** required for MVP-VERIFIED. INCOMPLETE = **NO-GO** |
-| G9 Cabinet | RC | `staging-host-cabinet` login/API; FA strings; Toman display |
+| G9 Cabinet | RC | `https://panel.rookari.com` login/API; FA strings; Toman display |
 | G10 Wholesale | RC | protected pricing path |
 | G11 Cutover Telegram | After start new bot | webhook URL live; single consumer |
 | G12 Cutover HTTP | After DNS | cabinet/hooks/master/sub/miniapp 200/expected on new IP |
@@ -489,7 +496,7 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 | `docs/superpowers/evidence/2026-08-29-*.md` | Snapshots; append re-verify dates | M0-T1 DONE; T3/T5/T6 DONE (`2026-08-31-cabinet-git.md`, `2026-08-31-upstream-tracking.md`, `2026-08-31-alembic-graph.md`; T2 `2026-08-31-wip-inventory.md`) |
 | `docker-compose.rehearsal.yml` | Isolated rehearsal stack | M1-T1 |
 | `deploy/remnawave/docker-compose.rehearsal.yml` | Rehearsal RW 2.8.1 then candidate | M1-T1 / M2 / M3 |
-| `deploy/caddy/Caddyfile` | Canonical RC Caddy (`staging-host-*` only) | M1-T4 |
+| `deploy/caddy/Caddyfile` | Canonical Caddy if/when repo single-source is used. **M1-T4 staging-host authoring cancelled.** Live RC Caddy stays `/opt/caddy/Caddyfile` (`panel.rookari.com`) | M1-T4 CANCELLED; M7-T1 still owns cutover blocks |
 | `deploy/caddy/Caddyfile.cutover` | Staged production blocks | M7-T1 |
 | `app/custom/safety/token_guard.py` | Fail-closed production-token guard | M1-T2 |
 | `tests/custom/test_token_guard.py` | Guard unit tests | M1-T2 |
@@ -543,7 +550,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-08-31:** **Checkpoint M0 complete.** Application code unchanged. Branch `prod-cutover` @ `2877a28f` (T2–T6 evidence + tag + closeout). **Next:** wait for user «شروع M1» before M1-T1.
+**Status 2026-08-31:** **Checkpoint M0 complete.** **M1.1 and M1.2 complete** on `prod-cutover` (not pushed). M1-T4 cancelled. Do not execute M2+ until the user explicitly says so.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -803,40 +810,28 @@ Expected: PASS (5 tests).
 - **GOAL:** A/B/C/D/E classification; RC env with no class D/E secrets.
 - **FILES:** `docs/superpowers/evidence/2026-08-31-env-matrix.md`; `.env.rehearsal` (gitignored).
 
-- [ ] Classify important keys using **this plan’s Environment classes (A–E)**. RC overrides: test token, `WEBHOOK_URL=https://staging-host-hooks.rookari.com` or polling, `CABINET_URL=https://staging-host-cabinet.rookari.com`, RC-scoped `WEB_API_ALLOWED_ORIGINS` (not `*`), C2C per this plan’s C2C isolation, `REMNAWAVE_API_URL`=rehearsal panel. Generated RC secrets. Class D absent. Report key names + fingerprints only.
+- [ ] Classify important keys using **this plan’s Environment classes (A–E)**. RC public URLs from live `/opt/remnabot1/.env`: test token, `WEBHOOK_URL=panel.rookari.com`, `BOT_RUN_MODE=polling`, `CABINET_URL=https://panel.rookari.com`, `WEB_API_ALLOWED_ORIGINS=*`, `C2C_ENABLED=true` with empty `C2C_ADMIN_CHAT_ID`. Isolated rehearsal compose: `REMNAWAVE_API_URL=http://rehearsal_rw:3000`. Live sandbox keeps `http://remnawave:3000`. Generated RC secrets. Class D absent. Report key names + fingerprints only. **Do not use `staging-host-*` in env.**
 - [ ] **Verify:** no class D/E key present; matrix classifies each important key.
 - [ ] **Commit** matrix doc only (never the env file) · **CHECKPOINT:** Checkpoint M1.2.
 
-### Task M1-T4: RC Caddy `staging-host-*` via repo single-source
+### Task M1-T4: RC Caddy — **CANCELLED** (do not author `staging-host-*`)
 
 - **ID:** M1-T4 · **WEIGHT:** 5 · **RISK:** Medium · **DEPENDENCIES:** M1-T1, M0-T0
-- **GOAL:** Route the five RC hostnames to rehearsal containers with no production names, through the repo single-source-of-truth.
-- **FILES:** Canonical `deploy/caddy/Caddyfile` (repo) → deploy to `/opt/caddy/Caddyfile`.
-
-- [ ] **Before editing Caddy:** confirm where `staging-host-{cabinet,hooks,miniapp,master,sub}` A records point.
-
-```bash
-# read-only DNS check (example)
-getent hosts staging-host-cabinet.rookari.com staging-host-hooks.rookari.com
-```
-
-If they still point at Bot (`91.107.249.43`), **do not** HTTP-01 on RC and **do not** duplicate Bot’s existing staging blocks (E5). Either move those A records to RC (`91.107.144.95`, P2) or pick unused RC names and `PLAN REVISION REQUIRED: staging-host DNS still on Bot`.
-
-- [ ] Author `staging-host-{cabinet,hooks,miniapp,master,sub}` blocks (HTTP-01) in the canonical file (cabinet `/api`→`rehearsal_bot:8080` else `cabinet_frontend` built from `/opt/cabinet`; hooks→bot; miniapp `/miniapp*`+`app-config.json`→bot else static; master→`rehearsal_rw:3000`; sub→`rehearsal_sub:3010`). Do **not** add production names (`cabinet.rookari.com`, `hooks.rookari.com`, …).
-- [ ] Deploy: `cp deploy/caddy/Caddyfile /opt/caddy/Caddyfile && docker exec caddy caddy validate --config /etc/caddy/Caddyfile && docker exec caddy caddy reload`. Drift check: `sha256sum /opt/caddy/Caddyfile deploy/caddy/Caddyfile` equal.
-- [ ] **Verify:** `caddy validate` OK; `curl -I https://staging-host-cabinet.rookari.com` → cert + expected **only if DNS points at RC**; production names still resolve to `Bot`.
-- [ ] **Commit** `feat(M1-T4): RC staging-host Caddy (repo single-source)` · **CHECKPOINT:** Checkpoint M1.3.
+- **STATUS:** **CANCELLED as written (2026-08-31 operator binding).** Staging is not the operational RC. Live Caddy already serves `https://panel.rookari.com`. Do **not** add `staging-host-*` server blocks. Do **not** HTTP-01 those names. Do **not** copy live `/opt/caddy/Caddyfile` into `deploy/caddy/` in M1. Do **not** add production names (`cabinet.rookari.com`, `hooks.rookari.com`, …) to RC Caddy until M8.
+- **GOAL (revised):** Leave live RC Caddy unchanged. Public RC hostname remains `panel.rookari.com`.
+- **FILES:** none for M1. Cutover production blocks remain M7-T1 (`deploy/caddy/Caddyfile.cutover`).
+- **CHECKPOINT:** Checkpoint M1.3 is **not** opened by this task. Next Caddy work waits for explicit user start (M7 or a later named task).
 
 ### Task M1-T5: RC network/port hardening
 
 - **ID:** M1-T5 · **WEIGHT:** 3 · **RISK:** Low · **DEPENDENCIES:** M1-T1
 - **FILES:** `docker-compose.rehearsal.yml`, `.env.rehearsal`.
 
-- [ ] Bind rehearsal DBs to `127.0.0.1`; no `0.0.0.0:6060`; `WEB_API_ALLOWED_ORIGINS=https://staging-host-cabinet.rookari.com`.
+- [ ] Bind rehearsal DBs to `127.0.0.1`; no `0.0.0.0:6060`; `WEB_API_ALLOWED_ORIGINS=*` matching live `/opt/remnabot1/.env` (not `staging-host-cabinet`).
 - [ ] **Verify:** `ss -ltnp | grep -E ':6061|:8081'` shows `127.0.0.1` only (once those ports exist).
 - [ ] **Commit** `chore(M1-T5): harden RC ports/CORS` · **CHECKPOINT:** Checkpoint M1.1.
 
-**Batches:** M1.1={M1-T1,M1-T5}(8, NORMAL); M1.2={M1-T2,M1-T3}(8, NORMAL); M1.3={M1-T4}(5, HIGH-RISK, shared Caddy). Checkpoints leave RC isolation improved; production untouched (G7 holds).
+**Batches:** M1.1={M1-T1,M1-T5}(8, NORMAL); M1.2={M1-T2,M1-T3}(8, NORMAL); M1.3={M1-T4} **cancelled** (do not author `staging-host-*` Caddy). Checkpoints leave RC isolation improved; production untouched (G7 holds). Public RC hostname = `panel.rookari.com`.
 
 ---
 
@@ -944,11 +939,11 @@ If they still point at Bot (`91.107.249.43`), **do not** HTTP-01 on RC and **do 
 
 ### Task M5-T1: RC cabinet from `/opt/cabinet`
 
-- **ID:** M5-T1 · **WEIGHT:** 5 · **RISK:** Medium · **DEPENDENCIES:** Checkpoint M1.3, Checkpoint M0-CAB
-- **GOAL:** Serve cabinet on `staging-host-cabinet` with `/api`→rehearsal bot.
+- **ID:** M5-T1 · **WEIGHT:** 5 · **RISK:** Medium · **DEPENDENCIES:** Checkpoint M1.2, Checkpoint M0-CAB (M1.3 Caddy cancelled)
+- **GOAL:** Serve cabinet on `https://panel.rookari.com` with `/api`→bot (already how live RC Caddy works). Isolated rehearsal cabinet, if used, must not invent `staging-host-cabinet`.
 - **FILES:** `/opt/cabinet` compose (join `remnawave-network` **or the rehearsal network named in M1-T1** — do not assume the sandbox `remnawave-network` is the rehearsal network).
-- **EXACT IMPLEMENTATION:** keep relative `VITE_API_URL=/api`; test bot username. M1-T4 block routes `/api/*`→`rehearsal_bot:8080`.
-- **VERIFICATION (G9):** `https://staging-host-cabinet.rookari.com` loads; login/API works; FA strings; Toman `تومان`.
+- **EXACT IMPLEMENTATION:** keep relative `VITE_API_URL=/api`; test bot username `mrj7_bot`. Live Caddy already routes `/api/*`→`remnawave_bot:8080`. Do not wait for cancelled M1-T4 staging-host blocks.
+- **VERIFICATION (G9):** `https://panel.rookari.com` loads; login/API works; FA strings; Toman `تومان`.
 - **COMMIT:** cabinet repo `feat(M5-T1): RC split compose + network` on `prod-cutover` if custom commits start · **CHECKPOINT:** Checkpoint M5.
 
 ### Task M5-T2: Single cabinet source of truth
@@ -999,7 +994,7 @@ If they still point at Bot (`91.107.249.43`), **do not** HTTP-01 on RC and **do 
 
 - **ID:** M6-T5 · **WEIGHT:** 8 · **RISK:** High · **DEPENDENCIES:** M6-T1..T4 (**G8 PASS required**), M4-T6, Checkpoint M3-ID
 - **FILES:** `docs/superpowers/evidence/2026-08-31-rc-e2e-smoke.md`.
-- Rehearsal bot (test token) on the `0111`+backfilled copy talking to the **rehearsal-passed candidate digest**: subscription purchase/renew; panel-user read/update **by numeric id** (or whatever M3-ID proved); sub link on `staging-host-sub`; cabinet login on `staging-host-cabinet`; FA+Toman+wholesale; C2C (G8 PASS).
+- Rehearsal bot (test token) on the `0111`+backfilled copy talking to the **rehearsal-passed candidate digest**: subscription purchase/renew; panel-user read/update **by numeric id** (or whatever M3-ID proved); sub link on `config.rookari.com` (live RW `SUB_PUBLIC_DOMAIN`); cabinet login on `https://panel.rookari.com`; FA+Toman+wholesale; C2C (G8 PASS). Do not use `staging-host-*` as the smoke URLs.
 - **FAILURE:** any protected-behavior regression, or **G8 not PASS** → **MVP-VERIFIED = NO-GO**; block cutover.
 - **CHECKPOINT:** **Checkpoint MVP-VERIFIED** (requires G8 PASS).
 

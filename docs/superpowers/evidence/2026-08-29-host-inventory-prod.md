@@ -69,5 +69,5 @@ Includes: `bot-remnawave_postgres_data`, `bot-remnawave_redis_data`, `remnawave-
 | Bot PG | `postgres:15-alpine` digest `sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f` |
 | Live alembic | `0103` |
 | RW | `backend:2.8.1`, PG `17.6`, sub `7.2.6` |
-| Caddy staging-host | `staging-host-{hooks,cabinet,miniapp,sub}` present (no `staging-host-master`) |
+| Caddy staging-host | `staging-host-{hooks,cabinet,miniapp,sub}` present on **Bot Caddy** (no `staging-host-master`). **Not** the operational RC. RC public hostname is `panel.rookari.com` |
 | Forbidden volumes (sample) | `bot-remnawave_postgres_data`, `bot-remnawave_*`, `remnawave-db-data`, `remnawave-admin_postgres_data`, `remnawave-staging_staging_postgres_data` |

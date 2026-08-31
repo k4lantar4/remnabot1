@@ -229,7 +229,7 @@ M1-T4 on RC must:
 
 ### E6. Governance artifacts (Checkpoint M0 complete)
 
-Governance started on `prod-cutover` @ `a168a817` (2026-08-29): rule `10-remnabot-migration.mdc`; evidence `2026-08-29-git-topology.md`, `2026-08-29-host-inventory-rc.md`, `2026-08-29-host-inventory-prod.md`; this plan. Remaining M0 evidence T2–T6 + checkpoint closeout through `2877a28f` (2026-08-31). Spec/errata files were committed then **deleted from the working tree** and must stay deleted. Rule filename is `10-remnabot-migration.mdc` (not gitignored `10-remnabot.mdc`). Rule alignment finished in `0c5fa2d1` / closeout `2877a28f`.
+Governance started on `prod-cutover` @ `a168a817` (2026-08-29): rule `10-remnabot-migration.mdc`; evidence `2026-08-29-git-topology.md`, `2026-08-29-host-inventory-rc.md`, `2026-08-29-host-inventory-prod.md`; this plan. M0 evidence T2–T6 + checkpoint closeout through `2877a28f` (2026-08-31). Spec/errata files were committed then **deleted from the working tree** and must stay deleted. Rule filename is `10-remnabot-migration.mdc` (not gitignored `10-remnabot.mdc`). Rule alignment finished in `0c5fa2d1` / closeout `2877a28f`.
 
 ### E7. Alembic fallback trigger
 
@@ -1152,7 +1152,7 @@ Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-
 
 **Not started:** M1+, Alembic graft, rehearsal compose, DNS, restore, cutover.
 
-**M0 complete** (2026-08-31): T0–T6 evidence + tag on `prod-cutover` @ `9aa0d69a`. Application code unchanged.
+**M0 complete** (2026-08-31): T0–T6 evidence + tag on `prod-cutover` through closeout `2877a28f`. Application code unchanged.
 
 **Next after user «شروع M1»:** Batch M1.1 (rehearsal compose + RC isolation). **Do not start remnabot1 against the restored dump until M4-T0.**
 

@@ -6,9 +6,9 @@ alwaysApply: true
 
 # Production cutover governance
 
-Read first: `docs/superpowers/specs/2026-08-29-governance-topology-audit-design.md` and `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md` (+ errata sibling).
+Read first: `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-Do not infer Git remotes, cabinet paths, or Alembic strategy from Architecture A without the errata file.
+The MVP plan is the single authority (updated 2026-08-31). Supporting specs/errata were removed; their binding facts are inlined in the plan. Do not execute M1+ until the user approves that plan.
 
 ---
 
@@ -64,8 +64,8 @@ Never `git init` on cabinet. Never force-push.
 ## 4. Authority hierarchy
 
 1. Live production + verified dumps
-2. MVP plan + governance audit design + plan errata (**Alembic authority**)
-3. Architecture A spec + `-errata.md` (DNS, Telegram, C2C, rollback)
+2. MVP plan (**Alembic + cutover authority**)
+3. `docs/superpowers/evidence/*` (verified snapshots; re-check at execution)
 4. This rule file
 5. `/opt/remnabot/.cursor/rules/*` (historical dev only)
 

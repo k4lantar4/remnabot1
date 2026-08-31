@@ -2,7 +2,8 @@
 
 Date: 2026-08-29  
 IP: `91.107.144.95`  
-Role: Release Candidate / rehearsal host
+Role: Release Candidate / rehearsal host  
+Re-verify: 2026-08-31 (appended below).
 
 ## Application trees
 
@@ -48,3 +49,18 @@ No `rehearsal_*` or `cutover_*` volumes yet (pre-M1).
 ## Caddy (local)
 
 Live `/opt/caddy/Caddyfile` includes legacy comment referencing `cabinet1` on `panel.rookari.com` — drift vs maintained topology; single-source under `remnabot1/deploy/caddy/` not yet created.
+
+## Re-verify 2026-08-31
+
+| Item | Value |
+|---|---|
+| `/opt/bot-remnawave` on RC | still **absent** |
+| `/opt/cabinet1` | still **absent** |
+| `docker-compose.rehearsal.yml` | still **absent** |
+| `deploy/caddy/` | still **absent** |
+| `rehearsal_*` / `cutover_*` volumes | still **absent** |
+| RC volumes | `remnabot1_postgres_data`, `remnabot1_redis_data`, `remnawave-db-data`, `caddy-ssl-data`, `valkey-socket` — all **forbidden** for restore |
+| Running sandbox | `remnabot1-bot` + `postgres:15-alpine`; RW `backend:3` + PG 18.4 + sub `:latest` — **non-promotable** |
+| RC Caddy `staging-host-*` | **none** (unlike Bot) |
+| Bot dump SHA-256 | `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` (unchanged) |
+| RW dump SHA-256 | `11935de69fc6dc318419753916ff840f950f5b4be7a27be46e2ccf2142347377` (unchanged) |

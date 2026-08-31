@@ -2,7 +2,8 @@
 
 Date: 2026-08-29  
 IP: `91.107.249.43`  
-SSH: `ssh bot` (read-only inspection during RC)
+SSH: `ssh bot` (read-only inspection during RC)  
+Re-verify: 2026-08-31 (appended below).
 
 ## Live application
 
@@ -58,3 +59,15 @@ Includes: `bot-remnawave_postgres_data`, `bot-remnawave_redis_data`, `remnawave-
 ## `/opt` layout (sample)
 
 `bot-remnawave`, `remnawave`, `caddy-remnawave`, `remnawave-admin`, `bedolaga-cabinet`, backups — live prod layout differs from RC `/opt` mirror.
+
+## Re-verify 2026-08-31 (`ssh bot`, read-only)
+
+| Item | Value |
+|---|---|
+| `/opt/bot-remnawave` | **exists** |
+| Bot container | `remnawave_bot` / `bot-remnawave-bot` |
+| Bot PG | `postgres:15-alpine` digest `sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f` |
+| Live alembic | `0103` |
+| RW | `backend:2.8.1`, PG `17.6`, sub `7.2.6` |
+| Caddy staging-host | `staging-host-{hooks,cabinet,miniapp,sub}` present (no `staging-host-master`) |
+| Forbidden volumes (sample) | `bot-remnawave_postgres_data`, `bot-remnawave_*`, `remnawave-db-data`, `remnawave-admin_postgres_data`, `remnawave-staging_staging_postgres_data` |

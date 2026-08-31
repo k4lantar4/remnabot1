@@ -1,0 +1,136 @@
+# Isolated rehearsal Remnawave 2.8.1 track (backend/db/redis/sub).
+# Derived from production Bot `/opt/remnawave/docker-compose.yml` structure.
+# Do not copy sandbox identities (backend:3, postgres:18.4, remnawave-db-data).
+# Do not copy production bind-mounts (hysteria2 patch, caddy certs, geosite).
+#
+# Digest pinning for remnawave/backend:2.8.1 is M2-T0. Until then: tag only.
+# Do not use :3, :latest, or v3.4.2.
+
+name: rehearsal
+
+x-common: &common
+  ulimits:
+    nofile:
+      soft: 1048576
+      hard: 1048576
+  restart: unless-stopped
+  networks:
+    - rehearsal_net
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: '5'
+
+services:
+  rehearsal_rw_db:
+    image: postgres:17.6
+    container_name: rehearsal_rw_db
+    hostname: rehearsal_rw_db
+    <<: [*common, *logging]
+    environment:
+      POSTGRES_USER: rehearsal_rw
+      POSTGRES_PASSWORD: rehearsal_rw_pg_placeholder
+      POSTGRES_DB: postgres
+      TZ: UTC
+    ports:
+      - '127.0.0.1:6768:5432'
+    volumes:
+      - rehearsal_rw_pg17:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rehearsal_rw -d postgres']
+      interval: 3s
+      timeout: 10s
+      retries: 3
+
+  rehearsal_rw_redis:
+    image: valkey/valkey:9-alpine
+    container_name: rehearsal_rw_redis
+    hostname: rehearsal_rw_redis
+    <<: [*common, *logging]
+    volumes:
+      - rehearsal_rw_valkey_socket:/var/run/valkey
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+      --loglevel warning
+      --unixsocket /var/run/valkey/valkey.sock
+      --unixsocketperm 777
+      --port 0
+    healthcheck:
+      test: ['CMD', 'valkey-cli', '-s', '/var/run/valkey/valkey.sock', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+  rehearsal_rw:
+    image: remnawave/backend:2.8.1
+    container_name: rehearsal_rw
+    hostname: rehearsal_rw
+    <<: [*common, *logging]
+    environment:
+      APP_PORT: '3000'
+      METRICS_PORT: '3001'
+      API_INSTANCES: '1'
+      DATABASE_URL: postgresql://rehearsal_rw:rehearsal_rw_pg_placeholder@rehearsal_rw_db:5432/postgres
+      REDIS_SOCKET: /var/run/valkey/valkey.sock
+      JWT_AUTH_SECRET: rehearsal_placeholder_jwt_auth_not_production
+      JWT_API_TOKENS_SECRET: rehearsal_placeholder_jwt_api_not_production
+      IS_TELEGRAM_NOTIFICATIONS_ENABLED: 'false'
+      WEBHOOK_ENABLED: 'false'
+      FRONT_END_DOMAIN: '*'
+      IS_DOCS_ENABLED: 'false'
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - rehearsal_rw_valkey_socket:/var/run/valkey
+    ports:
+      - '127.0.0.1:3100:3000'
+      - '127.0.0.1:3101:3001'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      rehearsal_rw_db:
+        condition: service_healthy
+      rehearsal_rw_redis:
+        condition: service_healthy
+
+  rehearsal_sub:
+    image: remnawave/subscription-page:7.2.6
+    container_name: rehearsal_sub
+    hostname: rehearsal_sub
+    <<: [*common, *logging]
+    environment:
+      REMNAWAVE_PANEL_URL: http://rehearsal_rw:3000
+      APP_PORT: '3000'
+      REMNAWAVE_API_TOKEN: rehearsal_placeholder_rw_api_token
+    ports:
+      # 7.2.6 listens on 3000 (production mapping). Sandbox :latest used 3010 — do not copy.
+      - '127.0.0.1:3110:3000'
+    depends_on:
+      rehearsal_rw:
+        condition: service_healthy
+
+volumes:
+  rehearsal_rw_pg17:
+    name: rehearsal_rw_pg17
+    driver: local
+  rehearsal_rw_valkey_socket:
+    name: rehearsal_rw_valkey_socket
+    driver: local
+
+networks:
+  rehearsal_net:
+    name: rehearsal_net
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1350

@@ -1,8 +1,8 @@
 # Production Cutover MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]` / `- [x]`) syntax. Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS.
+> **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-08-31.** **Checkpoint M0 complete** (T0–T6 evidence + tag committed on `prod-cutover`). **Checkpoint M1.1 and M1.2 complete.** **RC public hostname revision** applied (`panel.rookari.com`). **Do not execute M2+ until the user explicitly says so.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **Checkpoint M0 complete.** **Checkpoint M1.1 and M1.2 complete** (pushed `origin/prod-cutover`). **RC public hostname** `panel.rookari.com`. **M2-T0 DONE** (2.8.1 digest pin). **Do not execute M2-T1 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -30,6 +30,74 @@
 - Secrets: fingerprints only in git/chat/plans. RC must not contain class D/E.
 - G8 C2C INCOMPLETE ⇒ **MVP-VERIFIED = NO-GO**.
 - `PLAN REVISION REQUIRED: <reason>` when live state contradicts this plan. Do not silently redesign.
+- Session contract (next section) is binding: one batch, numbered smoke, no silent wait.
+
+---
+
+## Session contract (binding — 2026-08-31)
+
+Repeatable loop for **every** new chat. The user pastes this plan and says which batch to start (e.g. «شروع M2»).
+
+**Skill:** `executing-plans`. Announce it. Load **this file**. Review critically. Execute **only the named open batch**. HIGH-RISK batch total weight **3–8**. Then stop and wait **with** the end-of-chat briefing (never a bare «تایید؟»).
+
+**Do not:** finish all remaining milestones; create a git worktree unless a task names a path; retarget `origin`; rewrite live `/opt/remnabot1/.env`; author `staging-host-*` as working URLs; start `rehearsal_bot` or run alembic on a restored dump before M4-T0 PASS.
+
+### Two-layer smoke (write into the task *before* coding if missing)
+
+| Layer | Who | When required | Cap |
+|---|---|---|---|
+| **Agent** | Agent runs commands; pastes evidence | Every batch | No cap; keep short |
+| **User** | Operator on `@mrj7_bot`, `https://panel.rookari.com`, or a DB query they can run | **Only if** the batch changes something they can see or query | **Max 5** numbered items |
+
+Infra/docs/compose-only batches (typical M2–M4-T0): User smoke = **none**. List Agent smoke. Closing line: «تایید یعنی برو به `<next task ID>`» — not a Telegram checklist.
+
+User-visible batches (bot copy, cabinet, C2C, prices, login): each User smoke row must have **path** (exact taps/URL/SQL), **expect**, **before**. Operator replies `1 OK` / `2 FAIL: …`. Do not start the next batch without those numbers.
+
+**Where to write smoke**
+
+- Living table: **Open smoke (this batch)** below — overwrite each session; keep ≤15 rows.
+- Closed batches: append `docs/superpowers/evidence/smoke-YYYY-MM-DD-<batch>.md`. Do **not** grow this plan into a smoke log.
+
+### End-of-chat briefing (mandatory — even when waiting)
+
+```
+## خلاصه
+- چه عوض شد (فایل/رفتار)
+- چرا
+- قبل → بعد
+- HEAD + pushed?
+
+## اسموک من
+N. سطح: بات | کابینت | DB | Agent
+   مسیر / دستور: …
+   انتظار: …
+   قبل: …
+
+اگر سطح کاربری ندارد: «اسموک کاربر: ندارد» + لیست Agent.
+
+## بعد از تایید تو
+<next task ID from this plan>
+```
+
+Silent wait (no before/after, no numbered list) is a **contract failure**. Update this plan in-place: task checkboxes, Open smoke `Status=pending`, wait line naming the next ID.
+
+---
+
+## Open smoke (this batch)
+
+**Batch open:** none — M2-T0 closed. **Wait:** user numbered OK → **M2-T1**.  
+**User smoke:** none (infra/compose only; no UI).  
+**Last closed:** M2-T0 (`docs/superpowers/evidence/smoke-2026-09-01-m2-t0.md`).
+
+| # | Layer | Path / command | Expect | Before | Status |
+|---|---|---|---|---|---|
+| 1 | Agent | `ssh bot docker image inspect remnawave/backend:2.8.1 --format '{{json .RepoDigests}}'` | Production digest recorded; no secrets | none | **PASS** `sha256:361f9bb0…ce956b` |
+| 2 | Agent | `docker pull remnawave/backend@sha256:361f9bb0…` then local `image inspect` | Local RepoDigest equals production; P4 PASS | none | **PASS** |
+| 3 | Agent | Pin `deploy/remnawave/docker-compose.rehearsal.yml`; `docker compose -p rehearsal -f deploy/remnawave/docker-compose.rehearsal.yml config` | Image is digest-pinned `2.8.1@sha256:…`; grep empty for `remnawave-db-data`, `remnabot1_postgres`, `bot-remnawave`, `:3`, `:latest` | tag-only `backend:2.8.1` | **PASS** |
+| 4 | Agent | Boot `rehearsal_rw` only; logs/health report 2.8.1 | Version 2.8.1; container not using sandbox `backend:3` | crash-loop without `METRICS_*` | **PASS** after class-C `METRICS_*` |
+| 5 | Agent | `docker volume ls` + `docker inspect` mounts | No live volume (`remnawave-db-data`, `remnabot1_postgres_data`) attached | none | **PASS**; empty Prisma volume wiped after proof |
+
+Wait after this batch: user numbered OK → **M2-T1** (bot dump restore, postgres-only). Do not start `rehearsal_bot`.
 
 ---
 
@@ -494,6 +562,7 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 | `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md` | This plan — single authority | this update |
 | `.cursor/rules/10-remnabot-migration.mdc` | Machine-readable topology/Alembic/forbidden DAG | M0-T0 DONE; keep aligned with this plan |
 | `docs/superpowers/evidence/2026-08-29-*.md` | Snapshots; append re-verify dates | M0-T1 DONE; T3/T5/T6 DONE (`2026-08-31-cabinet-git.md`, `2026-08-31-upstream-tracking.md`, `2026-08-31-alembic-graph.md`; T2 `2026-08-31-wip-inventory.md`) |
+| `docs/superpowers/evidence/smoke-YYYY-MM-DD-<batch>.md` | Closed-batch smoke archive (not this plan) | each batch closeout |
 | `docker-compose.rehearsal.yml` | Isolated rehearsal stack | M1-T1 |
 | `deploy/remnawave/docker-compose.rehearsal.yml` | Rehearsal RW 2.8.1 then candidate | M1-T1 / M2 / M3 |
 | `deploy/caddy/Caddyfile` | Canonical Caddy if/when repo single-source is used. **M1-T4 staging-host authoring cancelled.** Live RC Caddy stays `/opt/caddy/Caddyfile` (`panel.rookari.com`) | M1-T4 CANCELLED; M7-T1 still owns cutover blocks |
@@ -517,8 +586,8 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 | P1 | Isolated C2C test admin chat (≠ production) | M6-T4, MVP-VERIFIED | **UNKNOWN** — ask the user; do not guess |
 | P2 | Cloudflare DNS write access | M7-T5, M8 | **UNKNOWN** — ask the user |
 | P3 | Cloudflare token for DNS-01 (optional) | M7-T6 preferred path | **UNKNOWN** — HTTP-01 window documented if missing |
-| P4 | `remnawave/backend:2.8.1` pullable | M2-T0 | UNKNOWN until pull at M2-T0 |
-| P5 | Read-only production RW env/compose on `Bot` | M2-T0 | Path `/opt/bot-remnawave` VERIFIED; residual env UNKNOWN (do not print secrets) |
+| P4 | `remnawave/backend:2.8.1` pullable | M2-T0 | **SATISFIED 2026-09-01.** Digest `sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b` (matches live Bot). Evidence `docs/superpowers/evidence/2026-09-01-m2-t0-rw-281-pin.md`. |
+| P5 | Read-only production RW env/compose on `Bot` | M2-T0 | **SATISFIED 2026-09-01.** Compose `/opt/remnawave/docker-compose.yml` (`backend:2.8.1` tag-only). Key names recorded. Secrets not copied. |
 | **P6** | **Production bot dump** | M2-T1 | **SATISFIED 2026-08-31.** SHA-256 `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85`. `alembic_version=0103`. Not a cutover artifact. Not inside remnabot1 git. RW dump SHA `11935de69fc6dc318419753916ff840f950f5b4be7a27be46e2ccf2142347377`. |
 
 ---
@@ -527,8 +596,8 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 
 ```
 M0 complete (T0–T6 evidence + tag on prod-cutover)
-  USER GATE: «شروع M1» → start M1
-  ├─ M1 RC infra (compose definable; postgres/redis may start; remnabot1 APP must not mount restored volume)
+  M1 complete (T4 cancelled)
+  USER GATE: «شروع M2» → M2-T0 only (session contract)
   ├─ M2-T0 pin RW 2.8.1 runtime
   ├─ M2-T1 bot restore postgres-only (needs P6, M1.1)     ──┐
   ├─ M2-T2 RW restore                                         │
@@ -550,7 +619,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-08-31:** **Checkpoint M0 complete.** **M1.1 and M1.2 complete** on `prod-cutover` (not pushed). M1-T4 cancelled. Do not execute M2+ until the user explicitly says so.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1.1 and M1.2 complete** and pushed. **M2-T0 DONE** (2.8.1 digest pin). M1-T4 cancelled. Do not execute M2-T1 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -661,7 +730,7 @@ Fallback = PLAN REVISION REQUIRED: Alembic graft failed M4-T0
 - **Replacement:** Cutover-safety / DNS / Telegram / C2C / rollback / gates / env classes are inlined in this plan (§Cutover safety). Do **not** copy `docs/superpowers/specs/2026-08-28-production-cutover-architecture-design.md` (or any `*-errata.md`) back into remnabot1.
 - Optional historical blob remains on `k4lantar4/remnabot` `origin/chore/mcp-dev-tools` @ `70476c0e`. Executors do not need it.
 
-**Checkpoint M0 complete** (2026-08-31): T2–T6 evidence files committed; tag `baseline/prefork-4.2.0-89fa7dc5` present; this plan is the only authority document. **Next:** user gate «شروع M1» — do not re-run T2–T6.
+**Checkpoint M0 complete** (2026-08-31): T2–T6 evidence files committed; tag `baseline/prefork-4.2.0-89fa7dc5` present; this plan is the only authority document. **M1 since completed.** Do not re-run T2–T6.
 
 ---
 
@@ -837,10 +906,22 @@ Expected: PASS (5 tests).
 
 # M2 — DB restoration rehearsals
 
+Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Open smoke before running. Do not start `rehearsal_bot`. Session contract: one task/batch then briefing.
+
 ### M2-T0: Pin Remnawave **2.8.1** restore runtime (not a 3.x pin)
 
-- **WEIGHT:** 5 · **DEPENDENCIES:** M1.1, P4, P5
-- Pull `remnawave/backend:2.8.1`; record **digest**. Derive compose/env from `/opt/bot-remnawave` on Bot (read-only). Boot reports 2.8.1. This pins the **pre-upgrade verify** image only. Do not use the RC sandbox `backend:3` image for this track.
+- **WEIGHT:** 5 · **DEPENDENCIES:** M1.1, P4, P5 · **STATUS:** **DONE** 2026-09-01
+- Pull `remnawave/backend:2.8.1`; record **digest**. Derive compose/env from `/opt/bot-remnawave` / `/opt/remnawave` on Bot (read-only). Boot reports 2.8.1. This pins the **pre-upgrade verify** image only. Do not use the RC sandbox `backend:3` image for this track.
+- **FILES:** `deploy/remnawave/docker-compose.rehearsal.yml`; evidence `docs/superpowers/evidence/2026-09-01-m2-t0-rw-281-pin.md`; gitignored `.env.rehearsal-rw` (`METRICS_*` class C).
+
+- [x] Production RepoDigest recorded (`ssh bot`): `sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b`
+- [x] Pull by that digest on RC (P4 PASS); local Id matches; `__RW_METADATA_VERSION=2.8.1`
+- [x] Pin `rehearsal_rw` (and companion PG 17.6 / sub 7.2.6) to production digests
+- [x] `compose config` grep empty for live volume names
+- [x] Boot `rehearsal_rw` reports `Remnawave Backend v2.8.1`; `/health` 200. Blocker: missing `METRICS_USER`/`METRICS_PASS` — generated class C (not production)
+- [x] Sandbox `backend:3` + `remnawave-db-data` untouched; `rehearsal_bot` not started
+- [x] Empty Prisma-seeded `rehearsal_rw_pg17` wiped after proof (M2-T2 restore target stays empty)
+- [x] Evidence committed
 
 ### M2-T1: Restore bot dump (G1) — postgres only
 
@@ -1120,13 +1201,13 @@ Resume from:
 2. remnabot1 branch `prod-cutover` @ current HEAD
 3. `/opt/cabinet` git
 4. `/opt/remnabot` as read-only custom source
-5. `docs/superpowers/evidence/*` (re-check dates)
+5. `docs/superpowers/evidence/*` (re-check dates) and **Open smoke (this batch)** in this plan
 6. `.cursor/rules/10-remnabot-migration.mdc`
 7. Runtime (`docker volume ls`, `alembic current`, Cloudflare A, `getWebhookInfo`, `ssh bot`)
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M1+ until the user explicitly says «شروع M1».** Checkpoint M0 is complete.
+**Do not execute M2-T1 until the user confirms this batch.** Checkpoints M0, M1, and M2-T0 are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1137,7 +1218,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate: «شروع M1» → Batch M1.1. Do not start remnabot1 against restored dump until M4-T0.
+6. User gate now: numbered OK on M2-T0 → **M2-T1**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
 
 ---
 
@@ -1145,15 +1226,12 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Not started:** M1+, Alembic graft, rehearsal compose, DNS, restore, cutover.
+**Done:** M0, M1.1, M1.2 (pushed). Hostname revision. Session contract + Open smoke. **M2-T0 DONE** 2026-09-01 (2.8.1 digest pin).
 
-**M0 complete** (2026-08-31): T0–T6 evidence + tag on `prod-cutover` through closeout `2877a28f`. Application code unchanged.
+**Not started:** M2-T1 bot restore, M2-T2 RW restore, Alembic graft, DNS, cutover. M1-T4 cancelled.
 
-**Next after user «شروع M1»:** Batch M1.1 (rehearsal compose + RC isolation). **Do not start remnabot1 against the restored dump until M4-T0.**
+**Next after user numbered OK:** **M2-T1** (restore bot dump into `rehearsal_bot_pg15`, postgres-only). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.**
 
-Ask the user P1 (isolated C2C test chat) and P2 (Cloudflare DNS write) before those tasks unblock; do not guess.
+P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 
-**Two execution options when the user starts work:**
-
-1. **Subagent-Driven (recommended)** — fresh subagent per task, review between tasks
-2. **Inline Execution** — execute tasks in-session using executing-plans, batch with checkpoints
+**New-chat skill:** executing-plans + Session contract (one batch). Optional SDD *inside* the batch. Never finish the whole plan in one session.

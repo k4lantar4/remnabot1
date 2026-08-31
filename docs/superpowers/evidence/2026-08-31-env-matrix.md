@@ -204,3 +204,7 @@ Isolated C2C test admin chat: **UNKNOWN**. Live RC `C2C_ENABLED=true` with empty
 - Production `REMNAWAVE_USER_USERNAME_TEMPLATE=u_{full_name}` preserved (non-secret).
 - Rehearsal RW `DATABASE_URL` still uses compose placeholder user `rehearsal_rw` (not production `postgres` user).
 - `rehearsal_sub` still has compose placeholder `REMNAWAVE_API_TOKEN` (not production sub token fp `72f3bb7d63a1a5d6`).
+
+## M2-T0 follow-up (2026-09-01)
+
+2.8.1 refuses to boot without `METRICS_USER` / `METRICS_PASS`. Production values are class D (listed above). Rehearsal now has **generated class C** in gitignored `.env.rehearsal-rw`: `METRICS_USER=rehearsal_metrics`, `METRICS_PASS` fp `c4c0153ab9431b28` (≠ production). See `docs/superpowers/evidence/2026-09-01-m2-t0-rw-281-pin.md`.

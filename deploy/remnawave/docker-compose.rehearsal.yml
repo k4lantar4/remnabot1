@@ -1,9 +1,16 @@
 # Isolated rehearsal Remnawave 2.8.1 track (backend/db/redis/sub).
-# Derived from production Bot `/opt/remnawave/docker-compose.yml` structure.
-# Do not copy sandbox identities (backend:3, postgres:18.4, remnawave-db-data).
-# Do not copy production bind-mounts (hysteria2 patch, caddy certs, geosite).
+# Derived from production Bot `/opt/remnawave/docker-compose.yml` structure
+# (read-only `ssh bot`, M2-T0). Do not copy sandbox identities
+# (backend:3, postgres:18.4, remnawave-db-data). Do not copy production
+# bind-mounts (hysteria2 patch, caddy certs, geosite).
 #
-# Digest pinning for remnawave/backend:2.8.1 is M2-T0. Until then: tag only.
+# Digests pinned M2-T0 from live production images on Bot:
+#   remnawave/backend:2.8.1
+#     sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b
+#   postgres:17.6
+#     sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+#   remnawave/subscription-page:7.2.6
+#     sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
 # Do not use :3, :latest, or v3.4.2.
 
 name: rehearsal
@@ -26,7 +33,7 @@ x-logging: &logging
 
 services:
   rehearsal_rw_db:
-    image: postgres:17.6
+    image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
     container_name: rehearsal_rw_db
     hostname: rehearsal_rw_db
     <<: [*common, *logging]
@@ -68,12 +75,12 @@ services:
       retries: 3
 
   rehearsal_rw:
-    image: remnawave/backend:2.8.1
+    image: remnawave/backend:2.8.1@sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b
     container_name: rehearsal_rw
     hostname: rehearsal_rw
     <<: [*common, *logging]
-    # JWT_*, FRONT_END_DOMAIN, PANEL_DOMAIN, SUB_PUBLIC_DOMAIN live in
-    # gitignored ../../.env.rehearsal-rw (M1-T3). Do not inline secrets or '*'.
+    # JWT_*, METRICS_*, FRONT_END_DOMAIN, PANEL_DOMAIN, SUB_PUBLIC_DOMAIN live in
+    # gitignored ../../.env.rehearsal-rw (M1-T3 + M2-T0). Do not inline secrets.
     env_file:
       - ../../.env.rehearsal-rw
     environment:
@@ -106,7 +113,7 @@ services:
         condition: service_healthy
 
   rehearsal_sub:
-    image: remnawave/subscription-page:7.2.6
+    image: remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
     container_name: rehearsal_sub
     hostname: rehearsal_sub
     <<: [*common, *logging]

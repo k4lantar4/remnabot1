@@ -72,17 +72,18 @@ services:
     container_name: rehearsal_rw
     hostname: rehearsal_rw
     <<: [*common, *logging]
+    # JWT_*, FRONT_END_DOMAIN, PANEL_DOMAIN, SUB_PUBLIC_DOMAIN live in
+    # gitignored ../../.env.rehearsal-rw (M1-T3). Do not inline secrets or '*'.
+    env_file:
+      - ../../.env.rehearsal-rw
     environment:
       APP_PORT: '3000'
       METRICS_PORT: '3001'
       API_INSTANCES: '1'
       DATABASE_URL: postgresql://rehearsal_rw:rehearsal_rw_pg_placeholder@rehearsal_rw_db:5432/postgres
       REDIS_SOCKET: /var/run/valkey/valkey.sock
-      JWT_AUTH_SECRET: rehearsal_placeholder_jwt_auth_not_production
-      JWT_API_TOKENS_SECRET: rehearsal_placeholder_jwt_api_not_production
       IS_TELEGRAM_NOTIFICATIONS_ENABLED: 'false'
       WEBHOOK_ENABLED: 'false'
-      FRONT_END_DOMAIN: '*'
       IS_DOCS_ENABLED: 'false'
     cap_add:
       - NET_ADMIN

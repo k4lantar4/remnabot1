@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`). **M3-T1 G3 PASS** (`remnawave/backend:3.4.3@sha256:4ea85b2f…84515422`, rehearsal-passed candidate, not production pin). **Do not execute M3-ID until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`). **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`). **M3-ID DONE** (uuid dropped; `shortUuid` exact key; `id`:=`t_id`; backfill required). **Do not execute M3-T2 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -85,20 +85,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M3-T1 closed. **Wait:** user numbered OK → **M3-ID**.  
-**User smoke:** none (G3 on rehearsal copy; live Caddy unchanged).  
-**Last closed:** M3-T1 (`docs/superpowers/evidence/smoke-2026-09-01-m3-t1.md`).
+**Batch open:** none — M3-ID closed. **Wait:** user numbered OK → **M3-T2**.  
+**User smoke:** none (docs + SQL/API on rehearsal copy; live Caddy unchanged).  
+**Last closed:** M3-ID (`docs/superpowers/evidence/smoke-2026-09-01-m3-id.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | Stop `rehearsal_rw`; `pg_dump -Fc` of G2 DB; SHA-256 | Exit 0; dump not PGDATA tar | G2 3181 users | **PASS** `e87a3aeb…a98940d8` |
-| 2 | Agent | Restore dump into `rehearsal_rw_pg17_candidate` | Original `rehearsal_rw_pg17` unmounted | G2 volume | **PASS** |
-| 3 | Agent | `docker pull remnawave/backend:3.4.3`; pin digest | RepoDigest = M3-T0 index | Hub index `sha256:4ea85b2f…` | **PASS** |
-| 4 | Agent | Boot candidate; Prisma on copy; G3 schema/counts/joins/`sub_revoked_at` | numeric `users.id`; `short_uuid` 3181; revoked 205 | 2.8.1 `uuid`+`t_id` | **PASS** |
-| 5 | Agent | `/health` + login SPA `127.0.0.1:3100` + `/api/sub/{shortUuid}` | health ok; Remnawave HTML; YAML 200 | proxy headers | **PASS** |
-| 6 | Agent | Isolation | sandbox `backend:3` + `remnawave-db-data` untouched; `rehearsal_bot` absent | none | **PASS** |
+| 1 | Agent | Official 3.4.3 Prisma + OpenAPI: uuid / shortUuid / resolve | uuid dropped; shortUuid retained; resolve keys documented | 4.2 comments | **PASS** |
+| 2 | Agent | Runtime schema on `rehearsal_rw_pg17_candidate` | no `users.uuid`; `id` bigint; no uuid mapping table | G3 | **PASS** |
+| 3 | Agent | Lookup probes (unauth 401 vs 404) | by id / shortUuid / username / resolve exist; by uuid gone | none | **PASS** |
+| 4 | Agent | Bot `rehearsal_bot_pg15` ∩ panel `short_uuid` | high coverage | G1 dump | **PASS** 3170/3172 = 99.94% |
+| 5 | Agent | 4.2 backfill match keys vs evidence | exact key = shortUuid; no uuid lookup | script as reference | **PASS** client unchanged |
 
-Wait after this batch: user numbered OK → **M3-ID** (identity/API on this digest). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB.
+Wait after this batch: user numbered OK → **M3-T2** (stay on PG 17; candidate already on 17.6). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB.
 
 ---
 
@@ -504,7 +503,7 @@ Do **not** duplicate Prisma/panel migrations in the bot. Bot Alembic only owns t
 1. **Graft** remnabot custom files `0088–0104` into remnabot1 `migrations/alembic/versions/` (those IDs already exist as different files — **replace** the upstream files in `versions/`).
 2. Archive **all** remnabot1 `0088–0110` as **reference only** under `docs/superpowers/reference/upstream-alembic-0088-0110/` in the **same commit** as the graft. Leaving `0105–0110` in `versions/` is fatal: remnabot1 `0105.down_revision = '0104'`, so after replacing `0104` with remnabot traffic-clamp, leftover `0105–0110` would still run and `alembic heads` would be `0110`.
 3. New additive revisions **`0111+`** chain from remnabot **`0104`**, inspector-guarded, for 4.2 schema the **running 4.2 code** actually needs after unused features stay disabled. `0111` is a **new file / new ID**. Never reuse remnabot1’s `0104` or `0105–0110` IDs on the live graph.
-4. `remnawave_id` is already in remnabot1 **models** and in the **to-be-archived** upstream `0104_remnawave_numeric_id.py`. It is **absent** from remnabot models/production schema (dump has no `remnawave_id`). The live `0111` **candidate** DDL (filled only after M3-ID) is: `users.remnawave_id` nullable BIGINT + **full** unique `ix_users_remnawave_id`; `subscriptions.remnawave_id` nullable BIGINT + **partial** unique `WHERE remnawave_id IS NOT NULL`. Those index shapes exist in 4.2 code; they are **not** rehearsal proof. Models must match (no inline `unique=True` on Subscription).
+4. `remnawave_id` is already in remnabot1 **models** and in the **to-be-archived** upstream `0104_remnawave_numeric_id.py`. It is **absent** from remnabot models/production schema (dump has no `remnawave_id`). **M3-ID filled the live `0111` semantics:** store panel `users.id` (bigint, former 2.8.1 `t_id`; **not** a hash of dropped `uuid`). Users: nullable BIGINT + **full** unique `ix_users_remnawave_id`. Subscriptions: nullable BIGINT + **partial** unique `WHERE remnawave_id IS NOT NULL`. Non-unique index on existing `remnawave_short_uuid` (exact match key). Inspector-guard `grace_access_sessions`. **uuid lookup is gone** (official + rehearsal 404 on `by-uuid` / `by-subscription-uuid`). Models must match (no inline `unique=True` on Subscription).
 
 **Graft is lineage-correct and not a drop-in.** File-swap alone is unsafe until these hazards are gated:
 
@@ -622,7 +621,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2-T0 / T1 (G1) / T2 (G2) DONE.** **M3-T0 DONE.** **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`). M1-T4 cancelled. Do not execute M3-ID until the user confirms. Session contract applies.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2-T0 / T1 (G1) / T2 (G2) DONE.** **M3-T0 DONE.** **M3-T1 G3 PASS.** **M3-ID DONE.** M1-T4 cancelled. Do not execute M3-T2 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -988,8 +987,16 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M3-ID: Prove identity/API on the **actual** candidate + official docs
 
-- **WEIGHT:** 8 · **DEPENDENCIES:** M3-T1 GO
+- **WEIGHT:** 8 · **DEPENDENCIES:** M3-T1 GO · **STATUS:** **DONE** 2026-09-01
 - Official panel migration/API + runtime: uuid dropped?, `shortUuid` retained?, mapping table?, which lookups work, correlation to bot `remnawave_short_uuid`, whether backfill is required, exact deterministic algorithm. **4.2 backfill is reference, not proof.** Adapt remnabot1 client only where evidence differs. Low shortUuid coverage → `PLAN REVISION REQUIRED`.
+- **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m3-id-identity-api.md`
+
+- [x] Official Prisma: `t_id`→`id` rename; `DROP COLUMN uuid`; no mapping table
+- [x] Official API: resolve `{id|shortUuid|username}`; by-id / by-short-uuid / by-username; **no** by-uuid
+- [x] Runtime schema matches; unauth 401 vs 404 probes
+- [x] Bot ∩ panel shortUuid **3170/3172 = 99.94%** (not low)
+- [x] Backfill required (no `remnawave_id`); exact key `remnawave_short_uuid`; 4.2 script keys **agree** — client **not** changed
+- [x] Evidence committed
 
 ### M3-T2: PG 17 vs 18
 
@@ -1243,7 +1250,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M3-ID until the user confirms this batch.** Checkpoints M0, M1, M2 (T0–T2, G1/G2), M3-T0, and M3-T1 (G3 PASS) are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M3-T2 until the user confirms this batch.** Checkpoints M0, M1, M2, M3-T0, M3-T1 (G3 PASS), and M3-ID are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1254,7 +1261,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M3-T1 → **M3-ID**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
+6. User gate now: numbered OK on M3-ID → **M3-T2**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
 
 ---
 
@@ -1262,11 +1269,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1, M2-T0, M2-T1 G1 PASS, M2-T2 G2 PASS, M3-T0 (`CANDIDATE_TAG=3.4.3`), **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`) 2026-09-01.
+**Done:** M0, M1, M2 (G1/G2), M3-T0, M3-T1 G3 PASS (`3.4.3@sha256:4ea85b2f…84515422`), **M3-ID** 2026-09-01.
 
-**Not started:** M3-ID, M3-T2 (PG 17 already running), Alembic graft (M4-T0, independently unblocked), DNS, cutover. M1-T4 cancelled.
+**Not started:** M3-T2 (PG 17 already running — confirm stay-on-17), Alembic graft (M4-T0, independently unblocked), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M3-ID** (identity/API proof on the G3 digest). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.** M4-T0 remains available as a later explicit batch.
+**Next after user numbered OK:** **M3-T2** (stay on PG 17 if candidate runs — it does). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.** M4-T0 remains available as a later explicit batch.
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

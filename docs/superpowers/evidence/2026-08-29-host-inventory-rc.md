@@ -64,3 +64,12 @@ Live `/opt/caddy/Caddyfile` includes legacy comment referencing `cabinet1` on `p
 | RC Caddy `staging-host-*` | **none** (unlike Bot) |
 | Bot dump SHA-256 | `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` (unchanged) |
 | RW dump SHA-256 | `11935de69fc6dc318419753916ff840f950f5b4be7a27be46e2ccf2142347377` (unchanged) |
+
+## Baseline tag (M0-T4, 2026-08-31)
+
+| Item | Value |
+|---|---|
+| Tag | `baseline/prefork-4.2.0-89fa7dc5` |
+| Tagged SHA | `89fa7dc584b9fb7f017c385d604614fb29692d66` (prefork 4.2.0; ancestor of current `prod-cutover` HEAD) |
+| Bot dump | **REHEARSAL INPUT — NOT cutover artifact** · SHA-256 `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` · alembic `0103` |
+| RW dump | **REHEARSAL INPUT — NOT cutover artifact** · SHA-256 `11935de69fc6dc318419753916ff840f950f5b4be7a27be46e2ccf2142347377` |

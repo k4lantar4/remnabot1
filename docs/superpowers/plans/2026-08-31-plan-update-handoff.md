@@ -1,5 +1,7 @@
 # Handoff: به‌روزرسانی پلن cutover (قبل از شروع توسعه)
 
+> **HISTORICAL — 2026-08-31.** Plan update executed. **`docs/superpowers/plans/2026-08-28-production-cutover-mvp.md` is the sole authority.** Do not treat this handoff as the current mission. Remaining M0 is checkpointed; next gate is user «شروع M1».
+
 Date: 2026-08-31  
 Audience: دستیار/عامل جدید  
 Branch: `prod-cutover` @ `/opt/remnabot1`

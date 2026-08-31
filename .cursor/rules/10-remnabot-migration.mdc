@@ -120,7 +120,7 @@ RC hostnames: `staging-host-*` only until cutover. Production names absent from 
 
 ## 10. Secrets and env
 
-Classify env keys A–E per Architecture A §8.1. RC must not contain class D/E (production token, prod C2C chat, prod payment creds, prod JWT).
+Classify env keys A–E per the MVP plan’s inlined **Environment classes (A–E)** section (`docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`). RC must not contain class D/E (production token, prod C2C chat, prod payment creds, prod JWT).
 
 Report fingerprints only — never commit or print secret values.
 

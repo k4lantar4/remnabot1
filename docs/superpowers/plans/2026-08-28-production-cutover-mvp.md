@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]` / `- [x]`) syntax. Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS.
 >
-> **Plan updated 2026-08-31.** Governance (M0-T0/T1 + host inventories) is committed. Remaining M0 is evidence/tag work only. **Do not execute M1+ until the user explicitly approves this updated plan** (e.g. «شروع M1» / "start M1").
+> **Plan updated 2026-08-31.** **Checkpoint M0 complete** (T0–T6 evidence + tag committed on `prod-cutover`). Application code unchanged. **Do not execute M1+ until the user explicitly says «شروع M1»** (or equivalent "start M1").
 >
 > **This file is the single authority.** Specs/errata siblings were deleted on purpose. Binding facts from Architecture A, architecture errata, plan errata E1–E7, and the governance audit are inlined below. Executors do not need deleted files.
 
@@ -67,9 +67,9 @@ Working tree at re-verify (do not treat as “clean”): `M .cursor/rules/10-rem
 
 Bot dump `COPY alembic_version` = `0103`. `c2c_receipts` present. **P6 SATISFIED.**
 
-### Artifacts still absent (plan remains correct)
+### Artifacts (M0 checkpoint — 2026-08-31)
 
-`docker-compose.rehearsal.yml` **absent**. `deploy/caddy/` **absent**. `rehearsal_*` / `cutover_*` volumes **absent**. Tag `baseline/prefork-4.2.0-89fa7dc5` **absent**.
+`docker-compose.rehearsal.yml` **absent**. `deploy/caddy/` **absent**. `rehearsal_*` / `cutover_*` volumes **absent** (expected until M1). Tag `baseline/prefork-4.2.0-89fa7dc5` **present** at `89fa7dc584b9fb7f017c385d604614fb29692d66` (M0-T4, commit `3f798500`).
 
 ### Production (`ssh bot`, 2026-08-31)
 
@@ -519,8 +519,8 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 ## Parallel DAG
 
 ```
-M0 remaining (T2 WIP inventory, T3 cabinet evidence, T4 tag, T5 tracking, T6 alembic evidence)
-  USER GATE: approve this plan → start M1
+M0 complete (T0–T6 evidence + tag on prod-cutover)
+  USER GATE: «شروع M1» → start M1
   ├─ M1 RC infra (compose definable; postgres/redis may start; remnabot1 APP must not mount restored volume)
   ├─ M2-T0 pin RW 2.8.1 runtime
   ├─ M2-T1 bot restore postgres-only (needs P6, M1.1)     ──┐
@@ -543,7 +543,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-08-31:** partial. Application code unchanged. Branch `prod-cutover` exists. **Do not start M1 until the user approves this plan.** Finish remaining M0 evidence tasks first (or in the same session the user starts M1, before M1-T1).
+**Status 2026-08-31:** **Checkpoint M0 complete.** Application code unchanged. Branch `prod-cutover` @ `9aa0d69a` (T2–T6 evidence + tag). **Next:** wait for user «شروع M1» before M1-T1.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -566,88 +566,45 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 **Branch strategy (bot):** `prod-cutover` already exists from `89fa7dc5`. Leave `main` free to track upstream. Never force-push. Never overwrite `origin/main`. Branch is **not** on `origin` yet — first push is `git push -u origin prod-cutover` when the user/plan permits (M0 remaining commits).
 
-### Task M0-T2: WIP inventory after tree replace
+### Task M0-T2: WIP inventory after tree replace — DONE
 
-- **ID:** M0-T2 · **WEIGHT:** 2 · **RISK:** Low · **DEPENDENCIES:** M0-T1 · **STATUS:** **PENDING**
+- **ID:** M0-T2 · **WEIGHT:** 2 · **RISK:** Low · **DEPENDENCIES:** M0-T1 · **STATUS:** **DONE** 2026-08-31 (commit `f10ebd75`)
 - **GOAL:** State what WIP survived. **Do not** commit `.cursor` churn or invent T2.1. **Do not** commit `locales/` unless an explicit product decision says so.
 - **FILES:** Create `docs/superpowers/evidence/2026-08-31-wip-inventory.md`
 
-- [ ] **Step 1: Write evidence** with these VERIFIED 2026-08-31 facts:
+- [x] **Step 1: Write evidence** — `docs/superpowers/evidence/2026-08-31-wip-inventory.md` (commit `f10ebd75`)
+- [x] **Step 2: Verify** no `app/` files staged for M0
+- [x] **Step 3: Commit** `docs(M0-T2): WIP inventory after remnabot1 re-fork`
 
-```markdown
-# WIP inventory (2026-08-31)
+### Task M0-T3: Cabinet Git reconciliation (non-destructive — no `git init`) — DONE
 
-## remnabot1 (`prod-cutover` @ a168a817)
-
-- `M docker-compose.yml`: joins external `remnawave-network`; comments out `bot_network` ipam subnet. This is RC-sandbox wiring, **not** rehearsal compose. Do not promote as cutover compose. Do not restore onto `remnabot1_postgres_data`.
-- `M .cursor/rules/10-remnabot-migration.mdc`: authority-hierarchy retarget after spec deletion (keep).
-- `D` four spec/errata files: intentional; stay deleted.
-- `?? locales/`: bind-mounted into running `remnabot1-bot` (`/opt/remnabot1/locales:/app/locales`). Untracked. Do not commit unless M4-T7 FA work requires it.
-- `app/custom` **missing**. Previous T2.1 wholesale seam is **not** on this fork.
-- Wholesale port source: `/opt/remnabot/app/utils/price_display.py` (M4-T7).
-
-## remnabot / cabinet
-
-- remnabot clean @ `f36ec4ca`. cabinet clean @ `35e5aa9e`.
-- No `app/` commit in M0.
-```
-
-- [ ] **Step 2: Verify** no `app/` files are staged for an M0 commit (`git -C /opt/remnabot1 diff --cached --name-only | grep '^app/'` empty)
-- [ ] **Step 3: Commit** `docs(M0-T2): WIP inventory after remnabot1 re-fork`
-
-### Task M0-T3: Cabinet Git reconciliation (non-destructive — no `git init`)
-
-- **ID:** M0-T3 · **WEIGHT:** 3 · **RISK:** Medium · **DEPENDENCIES:** M0-T1 · **STATUS:** **PENDING** (facts already VERIFIED; evidence file missing)
+- **ID:** M0-T3 · **WEIGHT:** 3 · **RISK:** Medium · **DEPENDENCIES:** M0-T1 · **STATUS:** **DONE** 2026-08-31 (commit `8b70bd75`)
 - **GOAL:** Confirm `/opt/cabinet` already is the maintained fork.
 - **FILES:** `docs/superpowers/evidence/2026-08-31-cabinet-git.md`
 
-- [ ] **Step 1: Re-inspect** (read-only):
+- [x] **Step 1: Re-inspect** (read-only) — remotes `k4lantar4/cabinet` + `bedolaga-cabinet`; HEAD `35e5aa9e`; 0/0 both; `/opt/cabinet1` ABSENT
+- [x] **Step 2: Write evidence** — `docs/superpowers/evidence/2026-08-31-cabinet-git.md`
+- [x] **Step 3:** No `git init`; no `cabinet1`; no force-push
+- [x] **Step 4:** Remotes match six-identity table
+- [x] **Step 5: Commit** `docs(M0-T3): cabinet git reconciliation` (`8b70bd75`). Cabinet repo unchanged.
 
-```bash
-git -C /opt/cabinet remote -v
-git -C /opt/cabinet log -1 --format='%H %s'
-git -C /opt/cabinet status --short
-git -C /opt/cabinet rev-list --left-right --count main...origin/main
-git -C /opt/cabinet rev-list --left-right --count main...upstream/main
-test -d /opt/cabinet1 && echo EXISTS || echo ABSENT
-```
+### Task M0-T4: Baseline tags + dump inventory — DONE
 
-Expected 2026-08-31: remotes `k4lantar4/cabinet` + `bedolaga-cabinet`; HEAD `35e5aa9e`; 0/0 both; `/opt/cabinet1` ABSENT.
-
-- [ ] **Step 2: Write evidence** recording those commands’ output (SHAs, not secrets).
-- [ ] **Step 3:** Do **not** `git init`. Do **not** retarget to `cabinet1`. Do **not** force-push. `main` is suitable until custom cabinet commits; then create `prod-cutover` from current `main`.
-- [ ] **Step 4:** If remotes disagree → `PLAN REVISION REQUIRED: Git topology ambiguity`.
-- [ ] **Step 5: Commit** evidence on remnabot1 (`docs(M0-T3): cabinet git reconciliation`). Cabinet repo unchanged.
-
-### Task M0-T4: Baseline tags + dump inventory — PARTIAL
-
-- **ID:** M0-T4 · **WEIGHT:** 3 · **RISK:** Medium · **STATUS:** **PARTIAL** — dump SHAs recorded in host-inventory-rc (re-verified 2026-08-31). Tag **not** created.
+- **ID:** M0-T4 · **WEIGHT:** 3 · **RISK:** Medium · **STATUS:** **DONE** 2026-08-31 (commit `3f798500` + tag `baseline/prefork-4.2.0-89fa7dc5`)
 - **FILES:** append to `docs/superpowers/evidence/2026-08-29-host-inventory-rc.md`; create tag.
 
 - [x] SHA-256 bot dump `b5fc023a…c093cb85` (re-verified 2026-08-31)
 - [x] SHA-256 RW dump `11935de6…42347377` (re-verified 2026-08-31)
 - [x] Dump `alembic_version=0103`
-- [ ] **Step: Tag** remnabot1 (does not move HEAD):
+- [x] **Step: Tag** `baseline/prefork-4.2.0-89fa7dc5` → `89fa7dc584b9fb7f017c385d604614fb29692d66` (verified)
+- [x] **Commit** `docs(M0-T4): record baseline tag 89fa7dc5` (`3f798500`). Dumps remain **REHEARSAL INPUT — NOT cutover artifacts** (not in git).
 
-```bash
-git -C /opt/remnabot1 tag baseline/prefork-4.2.0-89fa7dc5 89fa7dc584b9fb7f017c385d604614fb29692d66
-git -C /opt/remnabot1 rev-parse baseline/prefork-4.2.0-89fa7dc5
-```
+### Task M0-T5: Establish upstream tracking baseline — DONE
 
-Expected: `89fa7dc584b9fb7f017c385d604614fb29692d66`
-
-Do not copy dumps into remnabot1 git. Label both **REHEARSAL INPUT — NOT cutover artifacts**.
-
-- [ ] **Commit** `docs(M0-T4): record baseline tag 89fa7dc5` if the tag+note is committed; tag itself is a git tag object.
-
-### Task M0-T5: Establish upstream tracking baseline
-
-- **ID:** M0-T5 · **WEIGHT:** 3 · **RISK:** Low · **STATUS:** **PENDING**
+- **ID:** M0-T5 · **WEIGHT:** 3 · **RISK:** Low · **STATUS:** **DONE** 2026-08-31 (commit `3926dd03`)
 - **FILES:** `docs/superpowers/evidence/2026-08-31-upstream-tracking.md`
 
-- [ ] **Step 1: Record** (read-only fetch if needed):
-
-Seed values VERIFIED 2026-08-31:
+- [x] **Step 1: Record** — `docs/superpowers/evidence/2026-08-31-upstream-tracking.md`. Seed values VERIFIED 2026-08-31:
 
 | Ref | SHA |
 |---|---|
@@ -660,16 +617,16 @@ Seed values VERIFIED 2026-08-31:
 | remnawave/panel latest (2026-08-29) | **v3.3.2** — re-check at execution |
 | RC compose promotion policy | `:3` / `:latest` = **violation** for promotion |
 
-- [ ] **Step 2:** Classify `origin/main` +1 (`python-app.yml`) as ignore vs integrate-now vs defer (default: **defer** — CI file, not a bot release).
-- [ ] **Step 3:** If remotes disagree with the six-identity table → `PLAN REVISION REQUIRED: Git topology ambiguity`.
-- [ ] **Step 4: Commit** `docs(M0-T5): upstream tracking baseline`
+- [x] **Step 2:** `origin/main` +1 (`python-app.yml`) classified **defer** (CI file, not a bot release)
+- [x] **Step 3:** Remotes match six-identity table
+- [x] **Step 4: Commit** `docs(M0-T5): upstream tracking baseline` (`3926dd03`)
 
-### Task M0-T6: Alembic graph decision evidence (before any migration file edit)
+### Task M0-T6: Alembic graph decision evidence (before any migration file edit) — DONE
 
-- **ID:** M0-T6 · **WEIGHT:** 5 · **RISK:** High · **STATUS:** **PENDING** (strategy inlined in this plan; dedicated evidence file still required before M4-T0)
+- **ID:** M0-T6 · **WEIGHT:** 5 · **RISK:** High · **STATUS:** **DONE** 2026-08-31 (commit `9aa0d69a`)
 - **FILES:** `docs/superpowers/evidence/2026-08-31-alembic-graph.md`
 
-- [ ] **Step 1: Write the table** remnabot vs remnabot1 for `0088–0110` using `find … -printf '%f\n'` (not colorized `ls`). Include:
+- [x] **Step 1: Write the table** — `docs/superpowers/evidence/2026-08-31-alembic-graph.md`. Includes:
 
 ```
 Last shared: 0087
@@ -688,8 +645,8 @@ Forbidden = no remnabot1 process / no alembic upgrade / no stamp on restored vol
 Fallback = PLAN REVISION REQUIRED: Alembic graft failed M4-T0
 ```
 
-- [ ] **Step 2: Verify** the document forbids applying `0104_remnawave_numeric_id.py` onto remnabot `0104`; forbids leaving `0105–0110` in `versions/`; forbids starting remnabot1 against `rehearsal_bot_pg15` before M4-T0.
-- [ ] **Step 3: Commit** `docs(M0-T6): alembic graft strategy`
+- [x] **Step 2: Verify** document forbids wrong `0104`, leftover `0105–0110`, and remnabot1 against `rehearsal_bot_pg15` before M4-T0
+- [x] **Step 3: Commit** `docs(M0-T6): alembic graft strategy` (`9aa0d69a`)
 
 ### Task M0-T7: Recover Architecture A spec — CANCELLED
 
@@ -697,7 +654,7 @@ Fallback = PLAN REVISION REQUIRED: Alembic graft failed M4-T0
 - **Replacement:** Cutover-safety / DNS / Telegram / C2C / rollback / gates / env classes are inlined in this plan (§Cutover safety). Do **not** copy `docs/superpowers/specs/2026-08-28-production-cutover-architecture-design.md` (or any `*-errata.md`) back into remnabot1.
 - Optional historical blob remains on `k4lantar4/remnabot` `origin/chore/mcp-dev-tools` @ `70476c0e`. Executors do not need it.
 
-**Remaining M0 batch** = {M0-T2, T3, T4-tag, T5, T6} + rule alignment. **Checkpoint M0** when those evidence files exist and this plan is the only authority document.
+**Checkpoint M0 complete** (2026-08-31): T2–T6 evidence files committed; tag `baseline/prefork-4.2.0-89fa7dc5` present; this plan is the only authority document. **Next:** user gate «شروع M1» — do not re-run T2–T6.
 
 ---
 
@@ -1174,7 +1131,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M1+ until the user explicitly approves this updated plan.**
+**Do not execute M1+ until the user explicitly says «شروع M1».** Checkpoint M0 is complete.
 
 ---
 
@@ -1184,8 +1141,8 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 2. Placeholder scan: no TBD / “implement later” / “similar to Task N”. Deleted-spec recovery task cancelled with an inlined replacement.
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
-5. “No task executed” removed. M0-T0/T1 DONE; T4 PARTIAL; T2/T3/T5/T6 PENDING; T7 CANCELLED.
-6. User gate: confirm this plan → remaining M0 evidence → then M1.
+5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
+6. User gate: «شروع M1» → Batch M1.1. Do not start remnabot1 against restored dump until M4-T0.
 
 ---
 
@@ -1195,7 +1152,9 @@ Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-
 
 **Not started:** M1+, Alembic graft, rehearsal compose, DNS, restore, cutover.
 
-**Next after user approval:** finish remaining M0 (T2, T3, T4-tag, T5, T6) then Batch M1.1. **Do not start remnabot1 against the restored dump until M4-T0.**
+**M0 complete** (2026-08-31): T0–T6 evidence + tag on `prod-cutover` @ `9aa0d69a`. Application code unchanged.
+
+**Next after user «شروع M1»:** Batch M1.1 (rehearsal compose + RC isolation). **Do not start remnabot1 against the restored dump until M4-T0.**
 
 Ask the user P1 (isolated C2C test chat) and P2 (Cloudflare DNS write) before those tasks unblock; do not guess.
 

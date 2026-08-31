@@ -33,7 +33,7 @@
 
 ## Re-verify 2026-08-31 (VERIFIED)
 
-Recorded on RC (`bot-v4` / `91.107.144.95`) and via `ssh bot` (read-only). Contradicts the 2026-08-29 plan claim “No task executed.”
+Recorded on RC (`bot-v4` / `91.107.144.95`) and via `ssh bot` (read-only). Contradicts the 2026-08-29 plan claim “No task executed.” Git snapshot below is **pre-T2–T6** (governance seed @ `a168a817`); checkpoint HEAD after closeout is `2877a28f`.
 
 ### Git
 
@@ -99,7 +99,7 @@ RC `/opt/caddy/Caddyfile` has **no** `staging-host-*` server blocks (unlike Bot)
 | # | Identity | Verified tree / remote | Role |
 |---|---|---|---|
 | 1 | **Production reference** | `/opt/remnabot` (`origin` = `k4lantar4/remnabot`, HEAD `f36ec4ca`, CHANGELOG **3.60.0**); embedded `/opt/remnabot/cabinet` (cabinet-frontend **1.57.0**, not a separate git repo) | READ-ONLY. Inspect production code/config/history. Rollback code reference. **Never** the working source; **never** modify during RC |
-| 2 | **Maintained repository (bot)** | `/opt/remnabot1` · `origin` = `https://github.com/k4lantar4/remnabot1.git` · `main` = **4.2.0** @ `89fa7dc5` · work branch `prod-cutover` @ `a168a817` | Final custom bot **code** authority after ports. Own Git history and release lifecycle |
+| 2 | **Maintained repository (bot)** | `/opt/remnabot1` · `origin` = `https://github.com/k4lantar4/remnabot1.git` · `main` = **4.2.0** @ `89fa7dc5` · work branch `prod-cutover` @ `2877a28f` (checkpoint HEAD; governance seed `a168a817` 2026-08-31) | Final custom bot **code** authority after ports. Own Git history and release lifecycle |
 | 3 | **Upstream repository (bot)** | `BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot` | Official bot upstream. Moving target. Fetch/compare only |
 | 4 | **Upstream working tree (bot)** | `/opt/bot` · `origin` = official upstream · HEAD identical to remnabot1 `main` `89fa7dc5` · dirty: `docker-compose.yml` | Local read-only clone of upstream. **Not** canonical. Never `compose up`, never restore, never implement here |
 | 5 | **RC runtime** | `bot-v4` / `91.107.144.95` · rehearsal compose + new volumes · test Telegram token · `staging-host-*` | Isolated rehearsal. Current `remnabot1` compose stack is a **dev sandbox**, not rehearsal |
@@ -227,9 +227,9 @@ M1-T4 on RC must:
 - confirm DNS for `staging-host-*` points to **RC** (`91.107.144.95`) before HTTP-01,
 - **not duplicate** prod staging routes if DNS still targets Bot.
 
-### E6. Governance artifacts (partial M0 complete)
+### E6. Governance artifacts (Checkpoint M0 complete)
 
-Committed on `prod-cutover` @ `a168a817`: rule `10-remnabot-migration.mdc`; evidence `2026-08-29-git-topology.md`, `2026-08-29-host-inventory-rc.md`, `2026-08-29-host-inventory-prod.md`; this plan. Spec/errata files were committed then **deleted from the working tree** and must stay deleted. Rule filename is `10-remnabot-migration.mdc` (not gitignored `10-remnabot.mdc`).
+Governance started on `prod-cutover` @ `a168a817` (2026-08-29): rule `10-remnabot-migration.mdc`; evidence `2026-08-29-git-topology.md`, `2026-08-29-host-inventory-rc.md`, `2026-08-29-host-inventory-prod.md`; this plan. Remaining M0 evidence T2–T6 + checkpoint closeout through `2877a28f` (2026-08-31). Spec/errata files were committed then **deleted from the working tree** and must stay deleted. Rule filename is `10-remnabot-migration.mdc` (not gitignored `10-remnabot.mdc`). Rule alignment finished in `0c5fa2d1` / closeout `2877a28f`.
 
 ### E7. Alembic fallback trigger
 
@@ -486,7 +486,7 @@ The existing RC `remnabot1` compose project (running `remnabot1-bot` against `re
 |---|---|---|
 | `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md` | This plan — single authority | this update |
 | `.cursor/rules/10-remnabot-migration.mdc` | Machine-readable topology/Alembic/forbidden DAG | M0-T0 DONE; keep aligned with this plan |
-| `docs/superpowers/evidence/2026-08-29-*.md` | Snapshots; append re-verify dates | M0-T1 DONE; remaining T3/T5/T6 |
+| `docs/superpowers/evidence/2026-08-29-*.md` | Snapshots; append re-verify dates | M0-T1 DONE; T3/T5/T6 DONE (`2026-08-31-cabinet-git.md`, `2026-08-31-upstream-tracking.md`, `2026-08-31-alembic-graph.md`; T2 `2026-08-31-wip-inventory.md`) |
 | `docker-compose.rehearsal.yml` | Isolated rehearsal stack | M1-T1 |
 | `deploy/remnawave/docker-compose.rehearsal.yml` | Rehearsal RW 2.8.1 then candidate | M1-T1 / M2 / M3 |
 | `deploy/caddy/Caddyfile` | Canonical RC Caddy (`staging-host-*` only) | M1-T4 |
@@ -543,13 +543,12 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-08-31:** **Checkpoint M0 complete.** Application code unchanged. Branch `prod-cutover` @ `9aa0d69a` (T2–T6 evidence + tag). **Next:** wait for user «شروع M1» before M1-T1.
+**Status 2026-08-31:** **Checkpoint M0 complete.** Application code unchanged. Branch `prod-cutover` @ `2877a28f` (T2–T6 evidence + tag + closeout). **Next:** wait for user «شروع M1» before M1-T1.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
 - **ID:** M0-T0 · **WEIGHT:** 2 · **RISK:** Low · **STATUS:** **DONE** 2026-08-29 (commit `a168a817`); re-verified 2026-08-31
 - **FILES:** `.cursor/rules/10-remnabot-migration.mdc` (exists; names `/opt/cabinet`, remnabot1 origin, four forbidden actions, Alembic graft)
-- **Remaining:** keep the rule’s “Read first” / authority hierarchy pointed at **this plan** (not deleted specs). Working-tree rule already started that edit; finish it in the plan-update commit.
 - **Do not recreate** the rule. **Do not** use filename `10-remnabot.mdc`.
 
 - [x] Rule exists and names `/opt/cabinet` (not cabinet1)
@@ -564,7 +563,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 - [x] Evidence file committed with six-identity table
 - [x] Append 2026-08-31 re-verify SHAs (this plan-update)
 
-**Branch strategy (bot):** `prod-cutover` already exists from `89fa7dc5`. Leave `main` free to track upstream. Never force-push. Never overwrite `origin/main`. Branch is **not** on `origin` yet — first push is `git push -u origin prod-cutover` when the user/plan permits (M0 remaining commits).
+**Branch strategy (bot):** `prod-cutover` already exists from `89fa7dc5`. Leave `main` free to track upstream. Never force-push. Never overwrite `origin/main`. M0 commits are done. Branch is **not** on `origin` yet — first push is `git push -u origin prod-cutover` when the user/plan permits.
 
 ### Task M0-T2: WIP inventory after tree replace — DONE
 
@@ -610,7 +609,8 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 |---|---|
 | remnabot1 `main` | `89fa7dc584b9fb7f017c385d604614fb29692d66` |
 | remnabot1 `origin/main` | `31a3e93042e528ac13f1b8aa9f4acb02001bac99` (1 ahead: `python-app.yml`) |
-| remnabot1 `prod-cutover` | `a168a817cbfdbab020ed3b328c596d866dfbc2a6` |
+| remnabot1 `prod-cutover` (2026-08-31 seed) | `a168a817cbfdbab020ed3b328c596d866dfbc2a6` |
+| remnabot1 `prod-cutover` (current, post T2–T6 closeout) | `2877a28fad3d47d8a3dcb34659983aaef7952388` |
 | `/opt/bot` HEAD | `89fa7dc584b9fb7f017c385d604614fb29692d66` |
 | cabinet `main`/`origin`/`upstream` | `35e5aa9e78123fdf18506a7a8a46875d268689ed` |
 | remnabot reference | `f36ec4ca078eea3f2647f01887ccf987823fbfd0` |

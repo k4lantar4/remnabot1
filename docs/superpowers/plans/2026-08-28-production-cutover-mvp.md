@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **Checkpoint M0 complete.** **Checkpoint M1.1 and M1.2 complete** (pushed `origin/prod-cutover`). **RC public hostname** `panel.rookari.com`. **M2-T0 DONE** (2.8.1 digest pin). **Do not execute M2-T1 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **Checkpoint M0 complete.** **Checkpoint M1.1 and M1.2 complete.** **M2-T0 DONE.** **M2-T1 DONE (G1 PASS).** **Do not execute M2-T2 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -85,19 +85,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M2-T0 closed. **Wait:** user numbered OK → **M2-T1**.  
-**User smoke:** none (infra/compose only; no UI).  
-**Last closed:** M2-T0 (`docs/superpowers/evidence/smoke-2026-09-01-m2-t0.md`).
+**Batch open:** none — M2-T1 closed. **Wait:** user numbered OK → **M2-T2**.  
+**User smoke:** none (DB restore; no UI).  
+**Last closed:** M2-T1 (`docs/superpowers/evidence/smoke-2026-09-01-m2-t1.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `ssh bot docker image inspect remnawave/backend:2.8.1 --format '{{json .RepoDigests}}'` | Production digest recorded; no secrets | none | **PASS** `sha256:361f9bb0…ce956b` |
-| 2 | Agent | `docker pull remnawave/backend@sha256:361f9bb0…` then local `image inspect` | Local RepoDigest equals production; P4 PASS | none | **PASS** |
-| 3 | Agent | Pin `deploy/remnawave/docker-compose.rehearsal.yml`; `docker compose -p rehearsal -f deploy/remnawave/docker-compose.rehearsal.yml config` | Image is digest-pinned `2.8.1@sha256:…`; grep empty for `remnawave-db-data`, `remnabot1_postgres`, `bot-remnawave`, `:3`, `:latest` | tag-only `backend:2.8.1` | **PASS** |
-| 4 | Agent | Boot `rehearsal_rw` only; logs/health report 2.8.1 | Version 2.8.1; container not using sandbox `backend:3` | crash-loop without `METRICS_*` | **PASS** after class-C `METRICS_*` |
-| 5 | Agent | `docker volume ls` + `docker inspect` mounts | No live volume (`remnawave-db-data`, `remnabot1_postgres_data`) attached | none | **PASS**; empty Prisma volume wiped after proof |
+| 1 | Agent | `sha256sum /opt/remnabot/old_3.60_remnawave_bot.sql` | Matches P6 `b5fc023a…c093cb85` | none | **PASS** |
+| 2 | Agent | `docker compose -p rehearsal -f docker-compose.rehearsal.yml up -d rehearsal_bot_db` | Only `rehearsal_bot_db`; mount `rehearsal_bot_pg15`; no `rehearsal_bot` | empty volume | **PASS** |
+| 3 | Agent | Restore dump via `psql` into `rehearsal_bot_db` | Exit 0; no write to `remnabot1_postgres_data` | empty PGDATA | **PASS** |
+| 4 | Agent | `SELECT version_num FROM alembic_version`; `COUNT(*)` users / `c2c_receipts` | `0103`; users > 0; `c2c_receipts` exists; no `0106` | none | **PASS** 0103 / 7828 / 1186 |
+| 5 | Agent | `docker inspect` mounts + `docker ps` | Sandbox `remnabot1_postgres_data` untouched; `rehearsal_bot` absent | none | **PASS** |
 
-Wait after this batch: user numbered OK → **M2-T1** (bot dump restore, postgres-only). Do not start `rehearsal_bot`.
+Wait after this batch: user numbered OK → **M2-T2** (RW 2.8.1 dump restore, G2). Do not start `rehearsal_bot`.
 
 ---
 
@@ -277,6 +277,8 @@ Rehearsal must either:
 - document and test `postgres:15.18` compatibility before cutover.
 
 `15.18` in earlier plan text is **aspirational**, not verified. Do not treat 15.18 as production-equivalent merely because it is a newer 15.x tag.
+
+**Re-verify 2026-09-01 (M2-T1):** the pinned production digest **is** PostgreSQL 15.18 (`psql (PostgreSQL) 15.18` inside `rehearsal_bot_db`). Rehearsal used that digest; dump header is also 15.18. No separate `:15.18` tag was introduced.
 
 ### E4. Remnawave two-track model
 
@@ -619,7 +621,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **Checkpoint M0 complete.** **M1.1 and M1.2 complete** and pushed. **M2-T0 DONE** (2.8.1 digest pin). M1-T4 cancelled. Do not execute M2-T1 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1.1 and M1.2 complete** and pushed. **M2-T0 DONE.** **M2-T1 DONE (G1 PASS).** M1-T4 cancelled. Do not execute M2-T2 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -925,9 +927,17 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M2-T1: Restore bot dump (G1) — postgres only
 
-- **WEIGHT:** 8 · **DEPENDENCIES:** M1.1, P6 (satisfied)
+- **WEIGHT:** 8 · **DEPENDENCIES:** M1.1, P6 (satisfied) · **STATUS:** **DONE** 2026-09-01 · **G1: PASS**
 - Restore `/opt/remnabot/old_3.60_remnawave_bot.sql` into `rehearsal_bot_pg15` with **only** `rehearsal_bot_db` (and redis if needed) running. G1: `alembic_version=0103`, user count, `c2c_receipts`, `c2c` enabled, not `0106`.
 - **FORBIDDEN:** start `rehearsal_bot` / run remnabot1 `alembic upgrade` / `stamp` against this volume until M4-T0 PASS. **FORBIDDEN:** restore onto `remnabot1_postgres_data`.
+- **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m2-t1-bot-restore-g1.md`
+
+- [x] Dump SHA-256 matches P6
+- [x] `up -d rehearsal_bot_db` only; mount `rehearsal_bot_pg15`; bind `127.0.0.1:6061`
+- [x] Restore with `psql -v ON_ERROR_STOP=1` (exit 0)
+- [x] G1: `0103`; users 7828; `c2c_receipts` 1186; no `0106`; `C2C_ENABLED=true`
+- [x] `rehearsal_bot` not started; sandbox `remnabot1_postgres_data` untouched
+- [x] Evidence committed
 
 ### M2-T2: Restore RW 2.8.1 dump (G2)
 
@@ -1207,7 +1217,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M2-T1 until the user confirms this batch.** Checkpoints M0, M1, and M2-T0 are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M2-T2 until the user confirms this batch.** Checkpoints M0, M1, M2-T0, and M2-T1 (G1) are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1218,7 +1228,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M2-T0 → **M2-T1**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
+6. User gate now: numbered OK on M2-T1 → **M2-T2**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
 
 ---
 
@@ -1226,11 +1236,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1.1, M1.2 (pushed). Hostname revision. Session contract + Open smoke. **M2-T0 DONE** 2026-09-01 (2.8.1 digest pin).
+**Done:** M0, M1, M2-T0, **M2-T1 G1 PASS** 2026-09-01.
 
-**Not started:** M2-T1 bot restore, M2-T2 RW restore, Alembic graft, DNS, cutover. M1-T4 cancelled.
+**Not started:** M2-T2 RW restore, Alembic graft, DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M2-T1** (restore bot dump into `rehearsal_bot_pg15`, postgres-only). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.**
+**Next after user numbered OK:** **M2-T2** (restore RW 2.8.1 dump into `rehearsal_rw_pg17`). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.**
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2-T0 / M2-T1 (G1) / M2-T2 (G2) DONE.** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`, tracking not pin). **Do not execute M3-T1 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`). **M3-T1 G3 PASS** (`remnawave/backend:3.4.3@sha256:4ea85b2f…84515422`, rehearsal-passed candidate, not production pin). **Do not execute M3-ID until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -23,7 +23,7 @@
 - remnabot1 `origin` = `k4lantar4/remnabot1`. Do not retarget origin to `k4lantar4/remnabot`.
 - Last shared Alembic revision = `0087`. From `0088`, same IDs, different semantics. Production DB = remnabot-lineage `0103`. remnabot1 disk = upstream `0110`. Graft before any remnabot1 app mounts a restored dump.
 - Restore/rehearsal volumes: **only** `rehearsal_*` / `cutover_*`.
-- Remnawave two-track: rehearsal-restore (`backend:2.8.1` digest, PG 17.6, sub 7.2.6) is promotable after G3. RC sandbox (`backend:3`, PG 18.4, `:latest`) is **not** promotable.
+- Remnawave two-track: rehearsal-restore (`backend:2.8.1` digest on frozen `rehearsal_rw_pg17`; **G3-passed candidate** `backend:3.4.3@sha256:4ea85b2f…84515422` on `rehearsal_rw_pg17_candidate`, PG 17.6, sub 7.2.6 unstarted). RC sandbox (`backend:3`, PG 18.4, `:latest`) is **not** promotable.
 - Bot PG: pin production `postgres:15-alpine` digest unless 15.18 compatibility is proven.
 - Writers freeze before dump. Pre-DNS verify before flip. Single production-token bot after old bot stopped.
 - Rollback = DNS back + frozen 3.60/2.8.1. Never in-place downgrade 3.x or `0111+`.
@@ -85,19 +85,20 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M3-T0 closed. **Wait:** user numbered OK → **M3-T1**.  
-**User smoke:** none (candidate selection; no user-visible change).  
-**Last closed:** M3-T0 (`docs/superpowers/evidence/smoke-2026-09-01-m3-t0.md`).
+**Batch open:** none — M3-T1 closed. **Wait:** user numbered OK → **M3-ID**.  
+**User smoke:** none (G3 on rehearsal copy; live Caddy unchanged).  
+**Last closed:** M3-T1 (`docs/superpowers/evidence/smoke-2026-09-01-m3-t1.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `gh api repos/remnawave/panel/releases/latest` | Latest stable 3.x tag; not draft/prerelease | seed v3.3.2 / M0-T5 saw v3.4.2 | **PASS** `3.4.3` 2026-08-31T20:14:25Z |
-| 2 | Agent | Hub + `imagetools inspect remnawave/backend:3.4.3` | Versioned tag exists; record index digest | no pull | **PASS** index `sha256:4ea85b2f…84515422` |
-| 3 | Agent | 3.4.3 release notes | No “stay on 3.3.2” / no prerelease | none | **PASS** auth-bypass fix over 3.4.2 |
-| 4 | Agent | `docker image inspect remnawave/backend:3.4.3`; `rehearsal_rw` image | Image **absent**; rehearsal still 2.8.1 digest | 2.8.1 pin | **PASS** |
-| 5 | Agent | Isolation | Sandbox `backend:3` + `remnawave-db-data` untouched; `rehearsal_bot` absent | none | **PASS** |
+| 1 | Agent | Stop `rehearsal_rw`; `pg_dump -Fc` of G2 DB; SHA-256 | Exit 0; dump not PGDATA tar | G2 3181 users | **PASS** `e87a3aeb…a98940d8` |
+| 2 | Agent | Restore dump into `rehearsal_rw_pg17_candidate` | Original `rehearsal_rw_pg17` unmounted | G2 volume | **PASS** |
+| 3 | Agent | `docker pull remnawave/backend:3.4.3`; pin digest | RepoDigest = M3-T0 index | Hub index `sha256:4ea85b2f…` | **PASS** |
+| 4 | Agent | Boot candidate; Prisma on copy; G3 schema/counts/joins/`sub_revoked_at` | numeric `users.id`; `short_uuid` 3181; revoked 205 | 2.8.1 `uuid`+`t_id` | **PASS** |
+| 5 | Agent | `/health` + login SPA `127.0.0.1:3100` + `/api/sub/{shortUuid}` | health ok; Remnawave HTML; YAML 200 | proxy headers | **PASS** |
+| 6 | Agent | Isolation | sandbox `backend:3` + `remnawave-db-data` untouched; `rehearsal_bot` absent | none | **PASS** |
 
-Wait after this batch: user numbered OK → **M3-T1** (pull `3.4.3` digest; G3 on copy). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB.
+Wait after this batch: user numbered OK → **M3-ID** (identity/API on this digest). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB.
 
 ---
 
@@ -284,7 +285,7 @@ Rehearsal must either:
 
 | Track | Stack | Promotable? |
 |---|---|---|
-| Rehearsal-restore | `backend:2.8.1` digest, PG **17.6**, subscription **7.2.6** (prod baseline) | Yes, after G3 |
+| Rehearsal-restore | `backend:2.8.1` digest on frozen `rehearsal_rw_pg17`; **G3-passed** `3.4.3@sha256:4ea85b2f…84515422` on `rehearsal_rw_pg17_candidate`, PG **17.6** | Candidate yes; production pin only at cutover |
 | RC dev sandbox | `backend:3`, PG **18.4**, `subscription-page:latest` | **No** — exploratory only |
 
 M3-T1/G3 evidence must come from the rehearsal-restore track, not the live RC sandbox. PG 17→18 is a **separate** track; do not combine with 2.8→3.x in one window.
@@ -621,7 +622,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2-T0 / T1 (G1) / T2 (G2) DONE.** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`). M1-T4 cancelled. Do not execute M3-T1 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2-T0 / T1 (G1) / T2 (G2) DONE.** **M3-T0 DONE.** **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`). M1-T4 cancelled. Do not execute M3-ID until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -972,9 +973,18 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M3-T1: Upgrade copy 2.8.1 → **candidate** (G3) GO/NO-GO
 
-- **WEIGHT:** 13 · **DEPENDENCIES:** M2-T2, M3-T0
+- **WEIGHT:** 13 · **DEPENDENCIES:** M2-T2, M3-T0 · **STATUS:** **DONE** 2026-09-01 · **G3: PASS**
 - Snapshot via `pg_dump -Fc` (not live PGDATA tar). Pull `remnawave/backend:<tag>` and record **digest**. Prisma runs on the copy. G3: numeric identity, reconstructible correlation (`shortUuid` or proven mapping), counts, joins, login, sub link, no mass revoke. Failure → `PLAN REVISION REQUIRED` (pick another 3.x). Success promotes **that digest** to “rehearsal-passed candidate,” still not production until cutover records it.
 - Evidence **must** come from `rehearsal_*` volumes, not the RC `backend:3` / PG 18.4 sandbox (E4).
+- **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m3-t1-rw-candidate-g3.md`
+
+- [x] `pg_dump -Fc` after freeze; SHA-256 `e87a3aeb…a98940d8`
+- [x] Restore into `rehearsal_rw_pg17_candidate`; G2 `rehearsal_rw_pg17` unmounted
+- [x] Pull/pin `remnawave/backend:3.4.3@sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422`
+- [x] Prisma on copy; boot `v3.4.3`; `/health` 200
+- [x] G3: `users.id` bigint; `uuid` dropped; `short_uuid` 3181 unique; revoked 205; join orphans 0; login SPA; `/api/sub/{shortUuid}` YAML 200
+- [x] Isolation: sandbox `backend:3` + `rehearsal_bot` absent
+- [x] Evidence committed
 
 ### M3-ID: Prove identity/API on the **actual** candidate + official docs
 
@@ -1233,7 +1243,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M3-T1 until the user confirms this batch.** Checkpoints M0, M1, M2 (T0–T2, G1/G2), and M3-T0 are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M3-ID until the user confirms this batch.** Checkpoints M0, M1, M2 (T0–T2, G1/G2), M3-T0, and M3-T1 (G3 PASS) are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1244,7 +1254,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M3-T0 → **M3-T1**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
+6. User gate now: numbered OK on M3-T1 → **M3-ID**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
 
 ---
 
@@ -1252,11 +1262,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1, M2-T0, M2-T1 G1 PASS, M2-T2 G2 PASS, **M3-T0** (`CANDIDATE_TAG=3.4.3`) 2026-09-01.
+**Done:** M0, M1, M2-T0, M2-T1 G1 PASS, M2-T2 G2 PASS, M3-T0 (`CANDIDATE_TAG=3.4.3`), **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`) 2026-09-01.
 
-**Not started:** M3-T1 candidate upgrade/G3, M3-ID, Alembic graft (M4-T0, independently unblocked), DNS, cutover. M1-T4 cancelled.
+**Not started:** M3-ID, M3-T2 (PG 17 already running), Alembic graft (M4-T0, independently unblocked), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M3-T1** (pull `remnawave/backend:3.4.3` digest; G3 on a copy of `rehearsal_rw_pg17`). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.** M4-T0 remains available as a later explicit batch.
+**Next after user numbered OK:** **M3-ID** (identity/API proof on the G3 digest). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.** M4-T0 remains available as a later explicit batch.
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

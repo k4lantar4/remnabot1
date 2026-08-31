@@ -1,17 +1,20 @@
-# Isolated rehearsal Remnawave 2.8.1 track (backend/db/redis/sub).
+# Isolated rehearsal Remnawave track (backend/db/redis/sub).
 # Derived from production Bot `/opt/remnawave/docker-compose.yml` structure
 # (read-only `ssh bot`, M2-T0). Do not copy sandbox identities
 # (backend:3, postgres:18.4, remnawave-db-data). Do not copy production
 # bind-mounts (hysteria2 patch, caddy certs, geosite).
 #
-# Digests pinned M2-T0 from live production images on Bot:
+# M2-T0 production restore-track pins (G2 frozen volume rehearsal_rw_pg17):
 #   remnawave/backend:2.8.1
 #     sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b
 #   postgres:17.6
 #     sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
 #   remnawave/subscription-page:7.2.6
 #     sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
-# Do not use :3, :latest, or v3.4.2.
+# M3-T1 candidate (Prisma on copy volume rehearsal_rw_pg17_candidate):
+#   remnawave/backend:3.4.3
+#     sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422
+# Stay on PG 17.6 (M3-T2). Do not use :3, :latest, or official compose postgres:18.4.
 
 name: rehearsal
 
@@ -45,7 +48,8 @@ services:
     ports:
       - '127.0.0.1:6768:5432'
     volumes:
-      - rehearsal_rw_pg17:/var/lib/postgresql/data
+      # G2 2.8.1 dump remains on unmounted rehearsal_rw_pg17.
+      - rehearsal_rw_pg17_candidate:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U rehearsal_rw -d postgres']
       interval: 3s
@@ -75,12 +79,12 @@ services:
       retries: 3
 
   rehearsal_rw:
-    image: remnawave/backend:2.8.1@sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b
+    image: remnawave/backend:3.4.3@sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422
     container_name: rehearsal_rw
     hostname: rehearsal_rw
     <<: [*common, *logging]
-    # JWT_*, METRICS_*, FRONT_END_DOMAIN, PANEL_DOMAIN, SUB_PUBLIC_DOMAIN live in
-    # gitignored ../../.env.rehearsal-rw (M1-T3 + M2-T0). Do not inline secrets.
+    # JWT_* leftover from 2.8.1 env; 3.4.3 requires class-C APP_SECRET in
+    # gitignored ../../.env.rehearsal-rw (M3-T1). Do not inline secrets.
     env_file:
       - ../../.env.rehearsal-rw
     environment:
@@ -105,7 +109,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 180s
     depends_on:
       rehearsal_rw_db:
         condition: service_healthy
@@ -131,6 +135,10 @@ services:
 volumes:
   rehearsal_rw_pg17:
     name: rehearsal_rw_pg17
+    driver: local
+  rehearsal_rw_pg17_candidate:
+    name: rehearsal_rw_pg17_candidate
+    external: true
     driver: local
   rehearsal_rw_valkey_socket:
     name: rehearsal_rw_valkey_socket

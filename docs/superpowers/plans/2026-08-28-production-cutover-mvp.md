@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3-T0 DONE** (`CANDIDATE_TAG=3.4.3`). **M3-T1 G3 PASS** (`3.4.3@sha256:4ea85b2f…84515422`). **M3-ID DONE** (uuid dropped; `shortUuid` exact key; `id`:=`t_id`; backfill required). **Do not execute M3-T2 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3 DONE** (T0 candidate 3.4.3; T1 G3 PASS; ID identity proof; T2 stay on PG **17.6**). **Do not execute M4-T0 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -85,19 +85,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M3-ID closed. **Wait:** user numbered OK → **M3-T2**.  
-**User smoke:** none (docs + SQL/API on rehearsal copy; live Caddy unchanged).  
-**Last closed:** M3-ID (`docs/superpowers/evidence/smoke-2026-09-01-m3-id.md`).
+**Batch open:** none — M3-T2 closed. **Wait:** user numbered OK → **M4-T0**.  
+**User smoke:** none (PG stay-on-17; live Caddy unchanged).  
+**Last closed:** M3-T2 (`docs/superpowers/evidence/smoke-2026-09-01-m3-t2.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | Official 3.4.3 Prisma + OpenAPI: uuid / shortUuid / resolve | uuid dropped; shortUuid retained; resolve keys documented | 4.2 comments | **PASS** |
-| 2 | Agent | Runtime schema on `rehearsal_rw_pg17_candidate` | no `users.uuid`; `id` bigint; no uuid mapping table | G3 | **PASS** |
-| 3 | Agent | Lookup probes (unauth 401 vs 404) | by id / shortUuid / username / resolve exist; by uuid gone | none | **PASS** |
-| 4 | Agent | Bot `rehearsal_bot_pg15` ∩ panel `short_uuid` | high coverage | G1 dump | **PASS** 3170/3172 = 99.94% |
-| 5 | Agent | 4.2 backfill match keys vs evidence | exact key = shortUuid; no uuid lookup | script as reference | **PASS** client unchanged |
+| 1 | Agent | `SHOW server_version` on `rehearsal_rw_db` | PostgreSQL 17.6; image M2-T0 digest | candidate already on 17 | **PASS** 17.6 |
+| 2 | Agent | `rehearsal_rw` health + `/health` | 3.4.3 healthy; DB up | G3 | **PASS** |
+| 3 | Agent | G3 spot counts | users 3181; `id` bigint | none | **PASS** |
+| 4 | Agent | sandbox `remnawave-db` | still 18.4 / `remnawave-db-data` | E4 | **PASS** |
+| 5 | Agent | No PG 18 retarget in rehearsal compose | still `postgres:17.6@sha256:00bc8661…` | none | **PASS** |
 
-Wait after this batch: user numbered OK → **M3-T2** (stay on PG 17; candidate already on 17.6). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB.
+Wait after this batch: user numbered OK → **M4-T0** (graft remnabot Alembic `0088–0104`). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB until M4-T0 PASS.
 
 ---
 
@@ -621,7 +621,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2-T0 / T1 (G1) / T2 (G2) DONE.** **M3-T0 DONE.** **M3-T1 G3 PASS.** **M3-ID DONE.** M1-T4 cancelled. Do not execute M3-T2 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2 complete (G1/G2).** **M3 complete** (T0/T1 G3/ID/T2 stay-on-17). M1-T4 cancelled. Do not execute M4-T0 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1000,8 +1000,15 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M3-T2: PG 17 vs 18
 
-- **WEIGHT:** 5 · **DEPENDENCIES:** M3-T1 GO
+- **WEIGHT:** 5 · **DEPENDENCIES:** M3-T1 GO · **STATUS:** **DONE** 2026-09-01 · **STAY ON 17.6**
 - Stay on 17 if the candidate runs; PG 18 is a separate track. Do not combine PG 17→18 with 2.8→3.x.
+- **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m3-t2-pg17.md`
+
+- [x] Candidate `SHOW server_version` = **17.6** on M2-T0 digest
+- [x] `rehearsal_rw` 3.4.3 healthy; `/health` 200; users 3181
+- [x] Sandbox remains PG **18.4** / `remnawave-db-data` (not used for G3)
+- [x] No compose retarget to `postgres:18.4`
+- [x] Evidence committed
 
 ---
 
@@ -1250,7 +1257,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M3-T2 until the user confirms this batch.** Checkpoints M0, M1, M2, M3-T0, M3-T1 (G3 PASS), and M3-ID are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M4-T0 until the user confirms this batch.** Checkpoints M0, M1, M2, and **M3** (T0/T1 G3/ID/T2 stay-on-17) are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1261,7 +1268,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M3-ID → **M3-T2**. Session contract. Do not start remnabot1 against restored dump until M4-T0.
+6. User gate now: numbered OK on M3-T2 → **M4-T0**. Session contract. Do not start remnabot1 against restored dump until M4-T0 PASS.
 
 ---
 
@@ -1269,11 +1276,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1, M2 (G1/G2), M3-T0, M3-T1 G3 PASS (`3.4.3@sha256:4ea85b2f…84515422`), **M3-ID** 2026-09-01.
+**Done:** M0, M1, M2 (G1/G2), **M3 complete** (T0 `CANDIDATE_TAG=3.4.3`; T1 G3 PASS `3.4.3@sha256:4ea85b2f…84515422`; ID; T2 stay on PG **17.6**) 2026-09-01.
 
-**Not started:** M3-T2 (PG 17 already running — confirm stay-on-17), Alembic graft (M4-T0, independently unblocked), DNS, cutover. M1-T4 cancelled.
+**Not started:** Alembic graft (**M4-T0**), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M3-T2** (stay on PG 17 if candidate runs — it does). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0.** M4-T0 remains available as a later explicit batch.
+**Next after user numbered OK:** **M4-T0** (archive remnabot1 `0088–0110`; copy remnabot `0088–0104`; `alembic heads` = remnabot `0104`). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0 PASS.**
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

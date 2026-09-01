@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **Do not execute M5-T1 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **M5-T1 DONE** (RC cabinet from `/opt/cabinet` on `panel.rookari.com`; split compose). **Do not execute M5-T2 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -86,19 +86,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M4-T7 closed. **Wait:** user numbered OK → **M5-T1**.  
-**User smoke:** none (code port; no polling bot; G8 is M6-T4).  
-**Last closed:** M4-T7 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t7.md`).
+**Batch open:** M5-T1. **Wait:** user numbered OK on row 5 → **M5-T2**.  
+**User smoke:** cabinet login on `https://panel.rookari.com` (FA + Toman).  
+**Last closed agent rows:** 1–4 below. Evidence: `docs/superpowers/evidence/2026-09-01-m5-t1-rc-cabinet.md`.
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `import main` + `PaymentMethod.C2C` + `C2cReceipt` | starts; enum `c2c`; table `c2c_receipts` | remnabot1 had no C2C | **PASS** |
-| 2 | Agent | pytest C2C + Toman + wholesale + FA + identity | 152 passed, 3 skipped | missing plugins | **PASS** |
-| 3 | Agent | `grep -r get_admin_texts app/` | 0 | — | **PASS** |
-| 4 | Agent | no new Alembic / no cabinet merge | grafted `c2c_receipts` + `0093` only | M4-T6 | **PASS** |
-| 5 | Agent | sandbox / `rehearsal_bot` | still `0110`; app absent; not rebuilt; not polled | M4-T6 | **PASS** |
+| 1 | Agent | cabinet `docker compose -f docker-compose.yml -f docker-compose.rc.yml config` | `remnawave-network` only; `/api`; `mrj7_bot`; no `staging-host` | dual-net WIP on `bot_bot_network` | **PASS** |
+| 2 | Agent | recreate `cabinet_frontend`; inspect `remnawave_bot` | cabinet on `remnawave-network` only; bot id unchanged; `rehearsal_bot` not started | attached to `bot_bot_network` too | **PASS** |
+| 3 | Agent | `https://panel.rookari.com/` + `/api/health` + `/api/cabinet/auth/me` | 200 HTML; 200 `4.2.0`; 401 | live Caddy already routed `/api` | **PASS** |
+| 4 | Agent | telegram-widget + fa JS | `mrj7_bot`; `تومان`; `ورود با تلگرام` | baked in existing image | **PASS** |
+| 5 | User | `https://panel.rookari.com` → FA → Telegram `@mrj7_bot` | login works; Persian UI; amounts `تومان` | unconfirmed in browser | **pending** |
 
-Wait after this batch: user numbered OK → **M5-T1** (RC cabinet from `/opt/cabinet`). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4.
+Wait after this batch: user numbered OK → **M5-T2** (single cabinet source of truth). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4.
 
 ---
 
@@ -636,7 +636,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). M1-T4 cancelled. Do not execute M5-T1 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). **M5-T1 DONE** (RC cabinet split compose). M1-T4 cancelled. Do not execute M5-T2 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1141,11 +1141,17 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 ### Task M5-T1: RC cabinet from `/opt/cabinet`
 
 - **ID:** M5-T1 · **WEIGHT:** 5 · **RISK:** Medium · **DEPENDENCIES:** Checkpoint M1.2, Checkpoint M0-CAB (M1.3 Caddy cancelled)
+- **STATUS:** **DONE** 2026-09-01 (cabinet `95d49d8b`; remnabot1 evidence `docs/superpowers/evidence/2026-09-01-m5-t1-rc-cabinet.md`). User smoke (Telegram login) still **pending**.
 - **GOAL:** Serve cabinet on `https://panel.rookari.com` with `/api`→bot (already how live RC Caddy works). Isolated rehearsal cabinet, if used, must not invent `staging-host-cabinet`.
 - **FILES:** `/opt/cabinet` compose (join `remnawave-network` **or the rehearsal network named in M1-T1** — do not assume the sandbox `remnawave-network` is the rehearsal network).
 - **EXACT IMPLEMENTATION:** keep relative `VITE_API_URL=/api`; test bot username `mrj7_bot`. Live Caddy already routes `/api/*`→`remnawave_bot:8080`. Do not wait for cancelled M1-T4 staging-host blocks.
 - **VERIFICATION (G9):** `https://panel.rookari.com` loads; login/API works; FA strings; Toman `تومان`.
 - **COMMIT:** cabinet repo `feat(M5-T1): RC split compose + network` on `prod-cutover` if custom commits start · **CHECKPOINT:** Checkpoint M5.
+
+- [x] **Step 1:** Restore upstream `docker-compose.yml`; add `docker-compose.rc.yml` (`remnawave-network` only) and `docker-compose.rehearsal.yml` (`rehearsal_net` only, not started).
+- [x] **Step 2:** Recreate `cabinet_frontend` with RC overlay; do not rebuild `remnawave_bot`; do not start `rehearsal_bot`.
+- [x] **Step 3:** Agent G9 probes PASS. User Telegram login left as numbered smoke.
+- [x] **Step 4: Commit** cabinet `feat(M5-T1): RC split compose + network` (`95d49d8b`) on `prod-cutover`; pushed `origin/prod-cutover`.
 
 ### Task M5-T2: Single cabinet source of truth
 
@@ -1327,7 +1333,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M5-T1 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6**, and **M4-T7** are complete. Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4.
+**Do not execute M5-T2 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**–**M4-T7**, and **M5-T1** are complete (user login smoke pending). Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4.
 
 ---
 
@@ -1338,7 +1344,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M4-T7 → **M5-T1**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
+6. User gate now: numbered OK on M5-T1 row 5 → **M5-T2**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
 
 ---
 
@@ -1346,11 +1352,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port) 2026-09-01.
+**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port), **M5-T1** (RC cabinet split compose @ cabinet `95d49d8b`) 2026-09-01.
 
-**Not started:** M5 cabinet RC, M6 gates (G8), DNS, cutover. M1-T4 cancelled.
+**Not started:** M5-T2/T3, M6 gates (G8), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M5-T1** (RC cabinet from `/opt/cabinet` on `https://panel.rookari.com`). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
+**Next after user numbered OK:** **M5-T2** (single cabinet source of truth). User smoke this batch: `https://panel.rookari.com` login. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

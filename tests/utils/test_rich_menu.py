@@ -19,6 +19,9 @@ class DummyTexts:
     def t(self, key, default=None):
         return default
 
+    def format_balance(self, amount_toman, *, round_kopeks=None):
+        return settings.format_balance(amount_toman, language=self.language, round_kopeks=round_kopeks)
+
     @staticmethod
     def format_traffic(gb, is_limit=True):
         if not gb and is_limit:
@@ -223,9 +226,35 @@ async def test_builder_single_subscription_structure(monkeypatch):
     assert 'format="r"' in html_out
     # Прогресс-бар остатка дней
     assert '<code>[' in html_out
-    # Баланс: Toman 1:1 with fa-IR grouping + display suffix
-    assert '1,250' in html_out
+    # Stored balance is Toman 1:1 — format_price would show 1,250 (÷100).
+    assert settings.format_balance(125_000, language='ru') in html_out
+    assert '1,250' not in html_out
     assert 'تومان' in html_out
+
+
+async def test_builder_balance_matches_screenshot_toman_not_catalog_scale(monkeypatch):
+    """Main-menu rich balance must match subscription/balance pages (26,800 not 268).
+
+    The balance line is shared by single-sub and multi-tariff rich menus
+    (``is_multi_tariff_enabled`` only switches the subscription table).
+    """
+    _patch_content_sources(monkeypatch)
+    monkeypatch.setattr(type(settings), 'is_multi_tariff_enabled', lambda self: False)
+    monkeypatch.setattr(type(settings), 'is_tariffs_mode', lambda self: True)
+    monkeypatch.setattr(settings, 'PRICE_DISPLAY_SUFFIX', ' تومان', raising=False)
+
+    now = datetime.now(UTC)
+    user = _make_user(_make_subscription(now))
+    user.language = 'fa'
+    user.balance_kopeks = 26_800
+    texts = DummyTexts()
+    texts.language = 'fa'
+
+    html_out = await rich_menu.build_main_menu_rich_html(user, texts, AsyncMock())
+
+    assert '26,800' in html_out
+    assert settings.format_balance(26_800, language='fa') in html_out
+    assert settings.format_price(26_800, language='fa') not in html_out
 
 
 async def test_builder_links_username_used_instead_of_name(monkeypatch):

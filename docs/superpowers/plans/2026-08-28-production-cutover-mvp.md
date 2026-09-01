@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3 DONE** (T0 candidate 3.4.3; T1 G3 PASS; ID identity proof; T2 stay on PG **17.6**). **Do not execute M4-T0 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE (G1/G2).** **M3 DONE.** **M4-T0 DONE** (graft remnabot `0088–0104`; archive upstream `0088–0110`; `alembic heads` = remnabot `0104`). **Do not execute M4-T1 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -21,7 +21,7 @@
 - Live production path on Bot is `/opt/bot-remnawave` (not `/opt/remnabot`).
 - Cabinet = `/opt/cabinet` (`k4lantar4/cabinet`). Never `/opt/cabinet1`. Never merge cabinet into remnabot1.
 - remnabot1 `origin` = `k4lantar4/remnabot1`. Do not retarget origin to `k4lantar4/remnabot`.
-- Last shared Alembic revision = `0087`. From `0088`, same IDs, different semantics. Production DB = remnabot-lineage `0103`. remnabot1 disk = upstream `0110`. Graft before any remnabot1 app mounts a restored dump.
+- Last shared Alembic revision = `0087`. From `0088`, same IDs, different semantics. Production DB = remnabot-lineage `0103`. remnabot1 **live graph after M4-T0** = remnabot `0104` (traffic clamp). Upstream `0088–0110` archived. Graft before any remnabot1 app mounts a restored dump.
 - Restore/rehearsal volumes: **only** `rehearsal_*` / `cutover_*`.
 - Remnawave two-track: rehearsal-restore (`backend:2.8.1` digest on frozen `rehearsal_rw_pg17`; **G3-passed candidate** `backend:3.4.3@sha256:4ea85b2f…84515422` on `rehearsal_rw_pg17_candidate`, PG 17.6, sub 7.2.6 unstarted). RC sandbox (`backend:3`, PG 18.4, `:latest`) is **not** promotable.
 - Bot PG: pin production `postgres:15-alpine` digest unless 15.18 compatibility is proven.
@@ -41,7 +41,7 @@ Repeatable loop for **every** new chat. The user pastes this plan and says which
 
 **Skill:** `executing-plans`. Announce it. Load **this file**. Review critically. Execute **only the named open batch**. HIGH-RISK batch total weight **3–8**. Then stop and wait **with** the end-of-chat briefing (never a bare «تایید؟»).
 
-**Do not:** finish all remaining milestones; create a git worktree unless a task names a path; retarget `origin`; rewrite live `/opt/remnabot1/.env`; author `staging-host-*` as working URLs; start `rehearsal_bot` or run alembic on a restored dump before M4-T0 PASS.
+**Do not:** finish all remaining milestones; create a git worktree unless a task names a path; retarget `origin`; rewrite live `/opt/remnabot1/.env`; author `staging-host-*` as working URLs; start `rehearsal_bot` until the user confirms **M4-T1**.
 
 ### Two-layer smoke (write into the task *before* coding if missing)
 
@@ -86,17 +86,21 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — E8 closed. **Wait:** user numbered OK → **M4-T0**.  
-**User smoke:** none (nodes emptied by operator; no dummy node requested).  
-**Last closed:** E8 (`docs/superpowers/evidence/smoke-2026-09-01-e8-nodes.md`).
+**Batch open:** none — M4-T0 closed. **Wait:** user numbered OK → **M4-T1**.  
+**User smoke:** none (Alembic file graft; no app start).  
+**Last closed:** M4-T0 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t0.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `SELECT count(*) FROM nodes` | 0 | production rows restored | **PASS** 0 |
-| 2 | Agent | users / hosts / panel health | 3181 / 50 / `/health` 200 | G3 | **PASS** |
-| 3 | Agent | rehearsal bind | `127.0.0.1:3100` only | none | **PASS** |
+| 1 | Agent | ScriptDirectory heads | `0104` traffic clamp | upstream `0110` | **PASS** |
+| 2 | Agent | leftover filenames | no `0104_remnawave_numeric_id.py` / `0110_*` in `versions/` | present | **PASS** |
+| 3 | Agent | archive | 23 upstream files | absent | **PASS** |
+| 4 | Agent | SHA vs remnabot `0088–0104` | match | n/a | **PASS** |
+| 5 | Agent | `test_migration_chain.py` | 3 passed | n/a | **PASS** |
+| 6 | Agent | `rehearsal_bot` / restore | app absent; alembic `0103` | G1 | **PASS** |
+| 7 | Agent | sandbox DB | still `0110`; bot not restarted | 4.2 sandbox | **PASS** |
 
-Wait after this batch: user numbered OK → **M4-T0** (graft remnabot Alembic `0088–0104`). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB until M4-T0 PASS. Do not attach a production or dummy node unless a later batch names it.
+Wait after this batch: user numbered OK → **M4-T1** (schema + boot + code-dependency diff). Do not start `rehearsal_bot` until that batch. Do not rebuild `remnawave_bot` against the grafted graph (sandbox still `0110`).
 
 ---
 
@@ -119,13 +123,13 @@ remnabot1 remotes (VERIFIED): `origin`=`k4lantar4/remnabot1.git`, `upstream`=`BE
 
 Working tree at re-verify (do not treat as “clean”): `M .cursor/rules/10-remnabot-migration.mdc`, `M docker-compose.yml` (joins `remnawave-network`; comments out bot_network ipam), `D` four deleted spec/errata files, `?? docs/superpowers/plans/2026-08-31-plan-update-handoff.md`, `?? locales/`.
 
-### Alembic (graft **not** done)
+### Alembic (graft **DONE** 2026-09-01)
 
 | Tree | Files on disk |
 |---|---|
-| remnabot1 | upstream `0088_dedupe_tariff_subscriptions.py` … `0110_referral_user_reward_choice.py` including `0103_add_legal_consents.py` and `0104_remnawave_numeric_id.py`. `0105.down_revision = '0104'`. |
-| remnabot | custom `0088_create_c2c_receipts.py` … `0104_traffic_purchase_expiry_clamp.py` including `0103_subscription_user_disabled.py`. `0096` is a merge. |
-| Archive dir | `docs/superpowers/reference/upstream-alembic-0088-0110/` **absent** |
+| remnabot1 live graph | remnabot `0088_create_c2c_receipts.py` … `0104_traffic_purchase_expiry_clamp.py`. `alembic heads` = **`0104`**. `0096` merge preserved. |
+| remnabot | same `0088–0104` (source; SHA match) |
+| Archive dir | `docs/superpowers/reference/upstream-alembic-0088-0110/` **present** (23 upstream files including `0104_remnawave_numeric_id.py` and `0110_referral_user_reward_choice.py`) |
 
 ### Dumps (rehearsal input — NOT cutover artifacts)
 
@@ -171,7 +175,7 @@ RC `/opt/caddy/Caddyfile` has **no** `staging-host-*` server blocks (unlike Bot)
 | 2 | **Maintained repository (bot)** | `/opt/remnabot1` · `origin` = `https://github.com/k4lantar4/remnabot1.git` · `main` = **4.2.0** @ `89fa7dc5` · work branch `prod-cutover` @ `2877a28f` (checkpoint HEAD; governance seed `a168a817` 2026-08-31) | Final custom bot **code** authority after ports. Own Git history and release lifecycle |
 | 3 | **Upstream repository (bot)** | `BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot` | Official bot upstream. Moving target. Fetch/compare only |
 | 4 | **Upstream working tree (bot)** | `/opt/bot` · `origin` = official upstream · HEAD identical to remnabot1 `main` `89fa7dc5` · dirty: `docker-compose.yml` | Local read-only clone of upstream. **Not** canonical. Never `compose up`, never restore, never implement here |
-| 5 | **RC runtime** | `bot-v4` / `91.107.144.95` · test Telegram token · public hostname `panel.rookari.com` (live `/opt/remnabot1/.env`) | Working RC sandbox is the **running** remnabot1 compose. Isolated rehearsal compose is a **separate** stack (not started until M4-T0). Do not use `staging-host-*` as RC env URLs |
+| 5 | **RC runtime** | `bot-v4` / `91.107.144.95` · test Telegram token · public hostname `panel.rookari.com` (live `/opt/remnabot1/.env`) | Working RC sandbox is the **running** remnabot1 compose (`alembic` still **`0110`** on `remnabot1_postgres_data` — do not rebuild against the graft). Isolated rehearsal bot is **not** started until M4-T1. Do not use `staging-host-*` as RC env URLs |
 | 6 | **Production runtime (today)** | `Bot` / `91.107.249.43` · live app **`/opt/bot-remnawave`** · frozen 3.60 / 2.8.1 after cutover | Live until cutover; then rollback target |
 
 **Cabinet (separate maintained application):**
@@ -367,7 +371,7 @@ Cabinet: `VITE_API_URL=/api` (relative) remains. `VITE_TELEGRAM_BOT_USERNAME` on
 
 RC compose must fail closed if `BOT_TOKEN` fingerprint equals the known production fingerprint (M1-T2).
 
-**Two stacks (do not conflate):** live remnabot1 sandbox uses `/opt/remnabot1/.env` and `REMNAWAVE_API_URL=http://remnawave:3000` on `panel.rookari.com` (already running — do not rewrite that `.env` for cutover work). Isolated rehearsal compose uses gitignored `.env.rehearsal` with the **same public URLs** and `REMNAWAVE_API_URL=http://rehearsal_rw:3000` (do not start `rehearsal_bot` until M4-T0).
+**Two stacks (do not conflate):** live remnabot1 sandbox uses `/opt/remnabot1/.env` and `REMNAWAVE_API_URL=http://remnawave:3000` on `panel.rookari.com` (already running — do not rewrite that `.env` for cutover work; sandbox DB is still **`0110`**). Isolated rehearsal compose uses gitignored `.env.rehearsal` with the **same public URLs** and `REMNAWAVE_API_URL=http://rehearsal_rw:3000` (do not start `rehearsal_bot` until M4-T1).
 
 ### Cutover Caddy (five production blocks)
 
@@ -521,7 +525,7 @@ Do **not** duplicate Prisma/panel migrations in the bot. Bot Alembic only owns t
 
 | Hazard | Evidence | Gate |
 |---|---|---|
-| Startup auto-upgrade | remnabot1 `main.py` calls `run_alembic_upgrade()` before `setup_bot()`. On existing DBs: `command.upgrade(..., 'head')`. On “fresh”: `create_all` + **`stamp head`**. `SKIP_MIGRATION` exists (`os.getenv('SKIP_MIGRATION','false')`) but is not a rehearsal default. | **Forbidden:** start any remnabot1 **app** container (or run `alembic upgrade` / `stamp`) against a volume that contains the restored dump until M4-T0 verification (`alembic heads` = remnabot `0104`). Set `SKIP_MIGRATION=true` on any container that accidentally touches a restored DB before M4-T0. |
+| Startup auto-upgrade | remnabot1 `main.py` calls `run_alembic_upgrade()` before `setup_bot()`. On existing DBs: `command.upgrade(..., 'head')`. On “fresh”: `create_all` + **`stamp head`**. `SKIP_MIGRATION` exists (`os.getenv('SKIP_MIGRATION','false')`) but is not a rehearsal default. | **M4-T0 PASS.** Still forbidden: start `rehearsal_bot` against `rehearsal_bot_pg15` until **M4-T1**. Set `SKIP_MIGRATION=true` if sandbox `remnawave_bot` must restart (DB still `0110`). |
 | Leftover `0105–0110` | `0105.down_revision = '0104'` (VERIFIED 2026-08-31) | Archive **0088–0110** in the same commit as the remnabot copy. M4-T0 fails if `0104_remnawave_numeric_id.py` or `0110_*.py` remain in `versions/`. |
 | `0001` = `Base.metadata.create_all` | `0001_initial_schema.py` creates **current** 4.2 models (remnawave_id, grace, coupons, legal consents, **no C2C**) then later revisions apply. Production restore skips `0001`; empty/CI volumes do not. | M4-T1 records this. Tests/CI against empty DBs are expected inconsistent until M4-T4/T7. Do not use empty-volume `create_all` as a production path. |
 | 4.2 tests/models vs grafted graph | Models already declare `users.remnawave_id` unique; tests import grace/legal/coupons; `tests/database/test_migration_chain.py` assumes the 4.2 chain. | Graft commit will desync models vs live graph until M4-T1/T3/T4/T7. Do not claim green 4.2 tests at M4-T0. List known breakages in M4-T0 evidence. |
@@ -560,7 +564,7 @@ Refactor **now** only if it directly reduces: migration risk, duplicated compati
 
 ## Forbidden actions (DAG edges)
 
-1. **No remnabot1 app process** and **no `alembic upgrade` / `stamp`** on any volume containing the restored production dump until M4-T0 verification (`alembic heads` = remnabot `0104` traffic clamp; no `0104_remnawave_numeric_id.py` in `versions/`).
+1. **M4-T0 PASS.** Do **not** start `rehearsal_bot` / remnabot1 app against `rehearsal_bot_pg15` until the user confirms **M4-T1**. Never `alembic upgrade` / `stamp` the sandbox volume `remnabot1_postgres_data` (still upstream **`0110`**) with the grafted graph; restart that bot only with `SKIP_MIGRATION=true`.
 2. **Never** `docker compose up` / restore against production or legacy volumes (`remnawave-db-data`, `remnabot1_postgres_data`, `bot-remnawave_postgres_data`, `bot-remnawave_*`, admin/staging fossils). Rehearsal uses only `rehearsal_*` / `cutover_*`.
 3. **Never** start the production-token bot until the old production bot is stopped (M8).
 4. **Never** apply remnabot1 live-graph `0088–0110` to a remnabot-lineage `0103` database.
@@ -634,7 +638,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2 complete (G1/G2).** **M3 complete** (T0/T1 G3/ID/T2 stay-on-17). M1-T4 cancelled. Do not execute M4-T0 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **Checkpoint M0 complete.** **M1 complete.** **M2 complete (G1/G2).** **M3 complete.** **M4-T0 PASS.** M1-T4 cancelled. Do not execute M4-T1 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -763,7 +767,7 @@ The running `remnabot1` compose stack is **not** this rehearsal stack. M1 create
 
 - [ ] **Step 1: Author compose** project `rehearsal`:
   - `rehearsal_bot_db`: image **`postgres:15-alpine@sha256:3d0f7584ed7d04e27fa050d6683a74746608faf21f202be78460d679cc56461f`** (E3; re-check digest at execution with `ssh bot docker image inspect`). Volume **`rehearsal_bot_pg15`**, bind `127.0.0.1:6061:5432`. Do **not** default to `15.18` unless a written compatibility proof exists.
-  - `rehearsal_bot_redis`; `rehearsal_bot` (build `/opt/remnabot1`, `env_file: .env.rehearsal`, `127.0.0.1:8081:8080`) — **defined but not started** against `rehearsal_bot_pg15` until M4-T0 PASS. If the service is ever created early: `SKIP_MIGRATION=true`.
+  - `rehearsal_bot_redis`; `rehearsal_bot` (build `/opt/remnabot1`, `env_file: .env.rehearsal`, `127.0.0.1:8081:8080`) — **defined but not started** against `rehearsal_bot_pg15` until M4-T1. If the service is ever created early: `SKIP_MIGRATION=true`.
   - `rehearsal_rw`: image from M2-T0 (`remnawave/backend:2.8.1` digest) until M3-T1 replaces it with the candidate digest. Do not use `:3` or `:latest`.
   - `rehearsal_rw_db` (`postgres:17.6`, volume **`rehearsal_rw_pg17`**, `127.0.0.1`); `rehearsal_rw_redis`; `rehearsal_sub` image `remnawave/subscription-page:7.2.6` until M3.
   - `cabinet_frontend` built from **`/opt/cabinet`** (not cabinet1, not `/opt/remnabot/cabinet`).
@@ -942,7 +946,7 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 - **WEIGHT:** 8 · **DEPENDENCIES:** M1.1, P6 (satisfied) · **STATUS:** **DONE** 2026-09-01 · **G1: PASS**
 - Restore `/opt/remnabot/old_3.60_remnawave_bot.sql` into `rehearsal_bot_pg15` with **only** `rehearsal_bot_db` (and redis if needed) running. G1: `alembic_version=0103`, user count, `c2c_receipts`, `c2c` enabled, not `0106`.
-- **FORBIDDEN:** start `rehearsal_bot` / run remnabot1 `alembic upgrade` / `stamp` against this volume until M4-T0 PASS. **FORBIDDEN:** restore onto `remnabot1_postgres_data`.
+- **FORBIDDEN:** start `rehearsal_bot` / run remnabot1 `alembic upgrade` / `stamp` against this volume until **M4-T1** (M4-T0 graft now PASS). **FORBIDDEN:** restore onto `remnabot1_postgres_data`.
 - **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m2-t1-bot-restore-g1.md`
 
 - [x] Dump SHA-256 matches P6
@@ -1030,11 +1034,18 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M4-T0: Graft remnabot Alembic lineage into remnabot1
 
-- **WEIGHT:** 8 · **DEPENDENCIES:** M0-T6
+- **WEIGHT:** 8 · **DEPENDENCIES:** M0-T6 · **STATUS:** **DONE** 2026-09-01 · **PASS**
 - Archive **all** remnabot1 `0088–0110` out of `versions/` into `docs/superpowers/reference/upstream-alembic-0088-0110/`. Copy remnabot `0088–0104` into `versions/` **in the same commit**. Confirm `alembic heads` = remnabot `0104` (traffic clamp). Record known test/model/`0001` breakages. Do not run against production. Do not start remnabot1 against `rehearsal_bot_pg15` until this verification PASSES.
 - **VERIFICATION:** `alembic heads` is remnabot `0104`; no file `0104_remnawave_numeric_id.py` or `0110_*.py` on the live graph; archive directory contains the 4.2 files.
 - **FAILURE:** `PLAN REVISION REQUIRED: Alembic graft failed M4-T0` (E7).
 - **COMMIT:** `feat(M4-T0): graft remnabot alembic 0088-0104; archive upstream 0088-0110`
+- **FILES:** evidence `docs/superpowers/evidence/2026-09-01-m4-t0-alembic-graft.md`
+
+- [x] Archive 23 upstream `0088–0110` files (incl. `0104_remnawave_numeric_id.py`, `0110_*.py`)
+- [x] Copy 17 remnabot `0088–0104` files (SHA match); `0087` identical
+- [x] `alembic heads` = remnabot `0104` traffic clamp; `test_migration_chain.py` 3 passed
+- [x] Recorded model/`0001`/sandbox-`0110` breakages; no upgrade on restore; `rehearsal_bot` absent
+- [x] Evidence committed
 
 ### M4-T1: Schema + boot + code-dependency diff
 
@@ -1271,7 +1282,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M4-T0 until the user confirms this batch.** Checkpoints M0, M1, M2, and **M3** (T0/T1 G3/ID/T2 stay-on-17) are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M4-T1 until the user confirms this batch.** Checkpoints M0, M1, M2, M3, and **M4-T0** (`alembic heads` = remnabot `0104`) are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1282,7 +1293,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M3-T2 → **M4-T0**. Session contract. Do not start remnabot1 against restored dump until M4-T0 PASS.
+6. User gate now: numbered OK on M4-T0 → **M4-T1**. Session contract. Do not start `rehearsal_bot` until M4-T1. Do not rebuild sandbox `remnawave_bot` against the graft (DB still `0110`).
 
 ---
 
@@ -1290,11 +1301,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1, M2 (G1/G2), **M3 complete**, **E8** (rehearsal `nodes` emptied; no dummy node for M4) 2026-09-01.
+**Done:** M0, M1, M2 (G1/G2), **M3 complete**, **E8**, **M4-T0 PASS** (`alembic heads` = remnabot `0104` traffic clamp) 2026-09-01.
 
-**Not started:** Alembic graft (**M4-T0**), DNS, cutover. M1-T4 cancelled.
+**Not started:** M4-T1 (schema/boot diff), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M4-T0** (archive remnabot1 `0088–0110`; copy remnabot `0088–0104`; `alembic heads` = remnabot `0104`). User smoke: none. **Do not start remnabot1 against the restored dump until M4-T0 PASS.**
+**Next after user numbered OK:** **M4-T1** (schema + boot + code-dependency diff against remnabot `0104`). User smoke: none. **Do not start `rehearsal_bot` until M4-T1.** Do not rebuild sandbox `remnawave_bot` (DB still `0110`).
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

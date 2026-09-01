@@ -106,7 +106,14 @@ from app.handlers.simple_subscription import (
     _get_simple_subscription_payment_keyboard,
 )
 from app.states import SubscriptionStates
-from app.utils.price_display import PriceInfo, format_price_text
+from app.utils.price_display import (
+    PriceInfo,
+    catalog_price_in_toman,
+    format_price_text,
+    render_addon_insufficient_funds,
+    user_can_afford,
+)
+from app.utils.topup_suggestion import build_cart_topup_metadata, suggest_topup_amount_toman
 from app.utils.pricing_utils import (
     calculate_months_from_days,
     format_period_description,
@@ -485,7 +492,7 @@ async def show_subscription_info(callback: types.CallbackQuery, db_user: User, d
 
     message = message_template.format(
         full_name=html.escape(db_user.full_name or ''),
-        balance=settings.format_price(db_user.balance_kopeks),
+        balance=texts.format_balance(db_user.balance_kopeks, round_kopeks=False),
         status_emoji=status_emoji,
         status_display=status_display,
         warning=warning_text,
@@ -1437,8 +1444,8 @@ async def save_cart_and_redirect_to_topup(
 
     await callback.message.edit_text(
         f'💰 Недостаточно средств для оформления подписки\n\n'
-        f'Требуется: {texts.format_price(missing_amount, round_kopeks=False)}\n'
-        f'У вас: {texts.format_price(db_user.balance_kopeks, round_kopeks=False)}\n\n'
+        f'Требуется: {texts.format_balance(missing_amount, round_kopeks=False)}\n'
+        f'У вас: {texts.format_balance(db_user.balance_kopeks, round_kopeks=False)}\n\n'
         f'🛒 Ваша корзина сохранена!\n'
         f'После пополнения баланса вы сможете вернуться к оформлению подписки.\n\n'
         f'Выберите способ пополнения:',
@@ -1544,17 +1551,15 @@ async def return_to_saved_cart(callback: types.CallbackQuery, state: FSMContext,
 
     total_price = prepared_cart_data.get('total_price', 0)
 
-    if total_price > 0 and db_user.balance_kopeks < total_price:
-        missing_amount = total_price - db_user.balance_kopeks
+    if total_price > 0 and not user_can_afford(db_user.balance_kopeks, total_price):
+        insufficient_text, missing_amount = render_addon_insufficient_funds(
+            texts,
+            price_kopeks=total_price,
+            balance_toman=db_user.balance_kopeks,
+        )
         insufficient_keyboard = get_insufficient_balance_keyboard_with_cart(
             db_user.language,
-            missing_amount,
-        )
-        insufficient_text = (
-            f'❌ Все еще недостаточно средств\n\n'
-            f'Требуется: {texts.format_price(total_price, round_kopeks=False)}\n'
-            f'У вас: {texts.format_price(db_user.balance_kopeks, round_kopeks=False)}\n'
-            f'Не хватает: {texts.format_price(missing_amount, round_kopeks=False)}'
+            suggest_topup_amount_toman(missing_amount),
         )
 
         if _message_needs_update(callback.message, insufficient_text, insufficient_keyboard):
@@ -1945,42 +1950,28 @@ async def confirm_extend_subscription(
         await callback.answer('⚠ Ошибка расчета стоимости', show_alert=True)
         return
 
-    if price > 0 and db_user.balance_kopeks < price:
-        missing_kopeks = price - db_user.balance_kopeks
-        required_text = texts.format_price(price)
-        message_text = texts.t(
-            'ADDON_INSUFFICIENT_FUNDS_MESSAGE',
-            (
-                '⚠️ <b>Недостаточно средств</b>\n\n'
-                'Стоимость услуги: {required}\n'
-                'На балансе: {balance}\n'
-                'Не хватает: {missing}\n\n'
-                'Выберите способ пополнения. Сумма подставится автоматически.'
-            ),
-        ).format(
-            required=required_text,
-            balance=texts.format_price(db_user.balance_kopeks, round_kopeks=False),
-            missing=texts.format_price(missing_kopeks, round_kopeks=False),
+    if price > 0 and not user_can_afford(db_user.balance_kopeks, price):
+        message_text, missing_toman = render_addon_insufficient_funds(
+            texts,
+            price_kopeks=price,
+            balance_toman=db_user.balance_kopeks,
         )
 
-        # Подготовим данные для сохранения в корзину
-        cart_data = {
-            'cart_mode': 'extend',
-            'subscription_id': subscription.id,
-            'period_days': days,
-            'total_price': price,
-            'user_id': db_user.id,
-            'saved_cart': True,
-            'missing_amount': missing_kopeks,
-            'return_to_cart': True,
-            'description': f'Продление подписки на {days} дней',
-            'consume_promo_offer': bool(promo_offer_discount > 0),
-            'device_limit': device_limit,
-            'devices': device_limit,
-            'traffic_limit_gb': renewal_traffic_gb,
-            'traffic_gb': renewal_traffic_gb,
-            'countries': list(subscription.connected_squads or []),
-        }
+        cart_data = build_cart_topup_metadata(
+            missing_toman=missing_toman,
+            cart_mode='extend',
+            subscription_id=subscription.id,
+            period_days=days,
+            total_price=price,
+            user_id=db_user.id,
+            description=f'Продление подписки на {days} дней',
+            consume_promo_offer=bool(promo_offer_discount > 0),
+            device_limit=device_limit,
+            devices=device_limit,
+            traffic_limit_gb=renewal_traffic_gb,
+            traffic_gb=renewal_traffic_gb,
+            countries=list(subscription.connected_squads or []),
+        )
 
         await user_cart_service.save_user_cart(db_user.id, cart_data)
 
@@ -1988,8 +1979,8 @@ async def confirm_extend_subscription(
             message_text,
             reply_markup=get_insufficient_balance_keyboard(
                 db_user.language,
-                amount_kopeks=missing_kopeks,
-                has_saved_cart=True,  # Указываем, что есть сохраненная корзина
+                amount_kopeks=suggest_topup_amount_toman(missing_toman),
+                has_saved_cart=True,
             ),
             parse_mode='HTML',
         )
@@ -2361,31 +2352,18 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
         )
     logger.info('ИТОГО: ₽', final_price=final_price / 100)
 
-    if final_price > 0 and db_user.balance_kopeks < final_price:
-        missing_kopeks = final_price - db_user.balance_kopeks
-        message_text = texts.t(
-            'ADDON_INSUFFICIENT_FUNDS_MESSAGE',
-            (
-                '⚠️ <b>Недостаточно средств</b>\n\n'
-                'Стоимость услуги: {required}\n'
-                'На балансе: {balance}\n'
-                'Не хватает: {missing}\n\n'
-                'Выберите способ пополнения. Сумма подставится автоматически.'
-            ),
-        ).format(
-            required=texts.format_price(final_price, round_kopeks=False),
-            balance=texts.format_price(db_user.balance_kopeks, round_kopeks=False),
-            missing=texts.format_price(missing_kopeks, round_kopeks=False),
+    if final_price > 0 and not user_can_afford(db_user.balance_kopeks, final_price):
+        message_text, missing_toman = render_addon_insufficient_funds(
+            texts,
+            price_kopeks=final_price,
+            balance_toman=db_user.balance_kopeks,
         )
 
-        # Сохраняем данные корзины в Redis перед переходом к пополнению
-        cart_data = {
+        cart_data = build_cart_topup_metadata(
+            missing_toman=missing_toman,
             **data,
-            'saved_cart': True,
-            'missing_amount': missing_kopeks,
-            'return_to_cart': True,
-            'user_id': db_user.id,
-        }
+            user_id=db_user.id,
+        )
 
         await user_cart_service.save_user_cart(db_user.id, cart_data)
 
@@ -2394,8 +2372,8 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
             reply_markup=get_insufficient_balance_keyboard(
                 db_user.language,
                 resume_callback=resume_callback,
-                amount_kopeks=missing_kopeks,
-                has_saved_cart=True,  # Указываем, что есть сохраненная корзина
+                amount_kopeks=suggest_topup_amount_toman(missing_toman),
+                has_saved_cart=True,
             ),
             parse_mode='HTML',
         )
@@ -2408,27 +2386,17 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
         success = await subtract_user_balance(
             db,
             db_user,
-            final_price,
+            catalog_price_in_toman(final_price),
             f'Покупка подписки на {data["period_days"]} дней',
             consume_promo_offer=promo_offer_discount_value > 0,
             mark_as_paid_subscription=True,
         )
 
         if not success:
-            missing_kopeks = final_price - db_user.balance_kopeks
-            message_text = texts.t(
-                'ADDON_INSUFFICIENT_FUNDS_MESSAGE',
-                (
-                    '⚠️ <b>Недостаточно средств</b>\n\n'
-                    'Стоимость услуги: {required}\n'
-                    'На балансе: {balance}\n'
-                    'Не хватает: {missing}\n\n'
-                    'Выберите способ пополнения. Сумма подставится автоматически.'
-                ),
-            ).format(
-                required=texts.format_price(final_price, round_kopeks=False),
-                balance=texts.format_price(db_user.balance_kopeks, round_kopeks=False),
-                missing=texts.format_price(missing_kopeks, round_kopeks=False),
+            message_text, missing_toman = render_addon_insufficient_funds(
+                texts,
+                price_kopeks=final_price,
+                balance_toman=db_user.balance_kopeks,
             )
 
             await callback.message.edit_text(
@@ -2436,7 +2404,7 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
                 reply_markup=get_insufficient_balance_keyboard(
                     db_user.language,
                     resume_callback=resume_callback,
-                    amount_kopeks=missing_kopeks,
+                    amount_kopeks=suggest_topup_amount_toman(missing_toman),
                 ),
                 parse_mode='HTML',
             )
@@ -4534,51 +4502,38 @@ async def _extend_existing_subscription(
     )
 
     # Проверяем баланс пользователя (при 100% скидке — пропускаем)
-    if price_kopeks > 0 and db_user.balance_kopeks < price_kopeks:
-        missing_kopeks = price_kopeks - db_user.balance_kopeks
-        message_text = texts.t(
-            'ADDON_INSUFFICIENT_FUNDS_MESSAGE',
-            (
-                '⚠️ <b>Недостаточно средств</b>\n\n'
-                'Стоимость услуги: {required}\n'
-                'На балансе: {balance}\n'
-                'Не хватает: {missing}\n\n'
-                'Выберите способ пополнения. Сумма подставится автоматически.'
-            ),
-        ).format(
-            required=texts.format_price(price_kopeks, round_kopeks=False),
-            balance=texts.format_price(db_user.balance_kopeks, round_kopeks=False),
-            missing=texts.format_price(missing_kopeks, round_kopeks=False),
+    if price_kopeks > 0 and not user_can_afford(db_user.balance_kopeks, price_kopeks):
+        message_text, missing_toman = render_addon_insufficient_funds(
+            texts,
+            price_kopeks=price_kopeks,
+            balance_toman=db_user.balance_kopeks,
         )
 
-        # Подготовим данные для сохранения в корзину
-        from app.services.user_cart_service import user_cart_service
-
-        cart_data = {
-            'cart_mode': 'extend',
-            'subscription_id': current_subscription.id,
-            'period_days': period_days,
-            'total_price': price_kopeks,
-            'user_id': db_user.id,
-            'saved_cart': True,
-            'missing_amount': missing_kopeks,
-            'return_to_cart': True,
-            'description': f'Продление подписки на {period_days} дней',
-            'device_limit': device_limit,
-            'devices': device_limit,
-            'traffic_limit_gb': traffic_limit_gb,
-            'traffic_gb': traffic_limit_gb,
-            'squad_uuid': squad_uuid,
-            'countries': [squad_uuid] if squad_uuid else [],
-            'consume_promo_offer': consume_promo,
-        }
+        cart_data = build_cart_topup_metadata(
+            missing_toman=missing_toman,
+            cart_mode='extend',
+            subscription_id=current_subscription.id,
+            period_days=period_days,
+            total_price=price_kopeks,
+            user_id=db_user.id,
+            description=f'Продление подписки на {period_days} дней',
+            device_limit=device_limit,
+            devices=device_limit,
+            traffic_limit_gb=traffic_limit_gb,
+            traffic_gb=traffic_limit_gb,
+            squad_uuid=squad_uuid,
+            countries=[squad_uuid] if squad_uuid else [],
+            consume_promo_offer=consume_promo,
+        )
 
         await user_cart_service.save_user_cart(db_user.id, cart_data)
 
         await callback.message.edit_text(
             message_text,
             reply_markup=get_insufficient_balance_keyboard(
-                db_user.language, amount_kopeks=missing_kopeks, has_saved_cart=True
+                db_user.language,
+                amount_kopeks=suggest_topup_amount_toman(missing_toman),
+                has_saved_cart=True,
             ),
             parse_mode='HTML',
         )
@@ -4589,7 +4544,7 @@ async def _extend_existing_subscription(
     success = await subtract_user_balance(
         db,
         db_user,
-        price_kopeks,
+        catalog_price_in_toman(price_kopeks),
         f'Продление подписки на {period_days} дней',
         consume_promo_offer=consume_promo,
         mark_as_paid_subscription=True,

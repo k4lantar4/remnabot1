@@ -88,6 +88,30 @@ def user_can_afford(balance_toman: int, price_kopeks: int) -> bool:
     return balance_toman >= catalog_price_in_toman(price_kopeks)
 
 
+def render_addon_insufficient_funds(texts, *, price_kopeks: int, balance_toman: int) -> tuple[str, int]:
+    """Persian/HTML insufficient-funds copy with Toman missing for C2C top-up.
+
+    Catalog price stays on ``format_price`` (÷100). Balance and shortfall use
+    ``format_balance`` (1:1) so the C2C card amount matches the کسری line.
+    """
+    missing_toman = max(0, catalog_price_in_toman(price_kopeks) - int(balance_toman or 0))
+    message = texts.t(
+        'ADDON_INSUFFICIENT_FUNDS_MESSAGE',
+        (
+            '⚠️ <b>Недостаточно средств</b>\n\n'
+            'Стоимость услуги: {required}\n'
+            'На балансе: {balance}\n'
+            'Не хватает: {missing}\n\n'
+            'Выберите способ пополнения. Сумма подставится автоматически.'
+        ),
+    ).format(
+        required=texts.format_price(price_kopeks, round_kopeks=False),
+        balance=texts.format_balance(balance_toman, round_kopeks=False),
+        missing=texts.format_balance(missing_toman, round_kopeks=False),
+    )
+    return message, missing_toman
+
+
 _PERSIAN_DIGITS = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')
 _ARABIC_DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
 _CURRENCY_SUFFIX_RE = re.compile(r'(?i)(تومان|toman|rial|₽)\s*$')

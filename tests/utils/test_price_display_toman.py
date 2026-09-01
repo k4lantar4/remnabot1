@@ -96,6 +96,43 @@ def test_calculate_missing_amount_uses_toman_not_catalog_diff() -> None:
     assert catalog_price_in_toman(500_000) == 5_000
 
 
+def test_addon_insufficient_copy_matches_c2c_toman_not_100x(toman_suffix) -> None:
+    """G8: کسری 72,200 تومان must not become C2C 7,220,000 تومان."""
+    from app.localization.texts import get_texts
+    from app.plugins.c2c.config_helpers import format_card_message
+    from app.utils.price_display import render_addon_insufficient_funds
+
+    texts = get_texts('fa')
+    price_kopeks = 7_320_000
+    balance_toman = 1_000
+    mixed_subtract = price_kopeks - balance_toman
+
+    message, missing_toman = render_addon_insufficient_funds(
+        texts,
+        price_kopeks=price_kopeks,
+        balance_toman=balance_toman,
+    )
+
+    assert user_can_afford(100_000, price_kopeks) is True
+    assert missing_toman == 72_200
+    assert mixed_subtract == 7_319_000
+    assert '72,200' in message
+    assert '73,200' in message
+    assert '1,000' in message
+    assert '7,319,000' not in message
+    assert '7,220,000' not in message
+
+    card = format_card_message(
+        {'label': 'RC test', 'number': '6037991111111111', 'holder': 'TEST'},
+        missing_toman,
+        '',
+        texts,
+    )
+    assert '72,200' in card
+    assert '7,220,000' not in card
+    assert '7,319,000' not in card
+
+
 def test_balance_toman_cutoff_utc_is_phase_b_instant() -> None:
     assert settings.BALANCE_TOMAN_CUTOFF_UTC == '2026-06-05T00:00:00Z'
     assert settings.balance_toman_cutoff == datetime(2026, 6, 5, tzinfo=UTC)

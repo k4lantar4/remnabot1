@@ -2,6 +2,9 @@
 # Project name is pinned so a bare compose in this directory cannot prefix
 # remnabot1_* volumes. Do not join remnawave-network.
 #
+# M5-T2: cabinet frontend source is /opt/cabinet only. Do not mount
+# /opt/remnabot/cabinet (legacy production embed) or grow remnabot1/cabinet/.
+#
 # Pass condition for M1-T1: `docker compose -p rehearsal -f docker-compose.rehearsal.yml config`
 # Do not `compose up` rehearsal_bot until M4-T0 PASS. Restore uses only rehearsal_* volumes.
 
@@ -83,6 +86,7 @@ services:
       - rehearsal_net
 
   cabinet_frontend:
+    # Canonical frontend tree. Not /opt/remnabot/cabinet. Not ./cabinet.
     build:
       context: /opt/cabinet
       dockerfile: Dockerfile

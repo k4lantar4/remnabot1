@@ -2317,6 +2317,9 @@
   "C2C_RECEIPT_SUBMIT_FAILED": "❌ ثبت رسید ناموفق: {reason}",
   "C2C_SEND_RECEIPT": "{card_info}\n\n📎 پس از واریز، عکس، فایل یا متن رسید را ارسال کنید.",
   "PAYMENT_C2C": "کارت به کارت 💳",
+  "PAYMENT_TOPUP_SUCCESS": "✅ <b>پرداخت با موفقیت انجام شد!</b>\n\n💰 مبلغ: {amount}\n💳 روش: {method}\n\nمبلغ به موجودی شما واریز شد!",
+  "PAYMENT_TOPUP_SUCCESS_WITH_CART": "✅ <b>پرداخت تأیید شد!</b>\n\n💰 مبلغ: {amount}\n💳 روش: {method}\n\nدر حال فعال‌سازی سرویس…",
+  "PAYMENT_TOPUP_CART_AUTOPURCHASE_FAILED": "✅ <b>موجودی شارژ شد!</b>\n\n💰 مبلغ: {amount}\n💳 روش: {method}\n\n⚠️ برای تکمیل خرید سرویس، دکمهٔ «بازگشت به خرید اشتراک» را بزنید.",
   "C2C_TOPUP_LEDGER_DESC": "واریز کارت‌به‌کارت: {amount} (رسید #{receipt_id})",
   "C2C_TOPUP_LEDGER_DESC_PARTIAL": "واریز کارت‌به‌کارت: {amount} (درخواست {requested}، رسید #{receipt_id})"
 }

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans**. Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Named-start + STOP classes (Session contract) are binding. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Do **not** run M7–M9 from a next-pointer. Frozen full-text history: `docs/superpowers/plans/archive/2026-08-28-production-cutover-mvp.full.md` (default **off** — do not read unless reconstructing a past decision or `PLAN REVISION`). If archive and this file disagree, **this file wins** for execution.
 >
-> **Next pointer (2026-09-01):** open = **M6-T4** (G8 C2C; needs P1). M6-T1 / M6-T2 / **M6-T3 DONE**. Checkpoint **M6.1** complete. M1-T4 cancelled. Do not poll `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). Named-start + P1 isolated chat required to run M6-T4.
+> **Next pointer (2026-09-02):** open = **M6-T5** (e2e RC smoke; G8 PASS). M6-T1…**T4 DONE**. Checkpoint **M6.2** complete. M1-T4 cancelled. `rehearsal_bot` may stay polling on the test token (G8). Do not rebuild sandbox `remnawave_bot` (DB still `0110`). Named-start required for M6-T5. Do not start M7 from a next-pointer.
 >
 > **RC public hostname:** `panel.rookari.com` (live `/opt/remnabot1/.env` + `/opt/caddy/Caddyfile`). Do **not** put `staging-host-*` in RC env. M1-T4 (author `staging-host-*` Caddy) is **cancelled**.
 
@@ -37,11 +37,11 @@
 
 ### Named-start (new chat)
 
-A new chat may run MVP/cutover tasks only if the **user message** names a task ID (`M6-T3`, `M7-T1`, …) or says **ادامه** or **شروع M6** (or the current open milestone). `شروع M6` / `ادامه` still cannot cross a STOP class (M6-T4 stays blocked without P1).
+A new chat may run MVP/cutover tasks only if the **user message** names a task ID (`M6-T5`, `M7-T1`, …) or says **ادامه** or **شروع M6** (or the current open milestone). `شروع M6` / `ادامه` still cannot cross a STOP class (M6-T5 is user-visible + high risk).
 
 **Not** named-start: greeting, status question, unrelated bug, “what is next?”, or the next-pointer sitting in this file with no user verb. Default: report next pointer + STOP ahead; do not start the task.
 
-**Skill:** `executing-plans`. Load **this file** (live plan) + the **open milestone section**. Do not load the frozen archive. Do not retarget `origin`; do not rewrite live `/opt/remnabot1/.env`; do not author `staging-host-*` working URLs; do not start polling `rehearsal_bot` until a named task requires it.
+**Skill:** `executing-plans`. Load **this file** (live plan) + the **open milestone section**. Do not load the frozen archive. Do not retarget `origin`; do not rewrite live `/opt/remnabot1/.env`; do not author `staging-host-*` working URLs. `rehearsal_bot` polling on the test token is authorized after M6-T4.
 
 ### Continue vs STOP (same chat)
 
@@ -52,12 +52,12 @@ A new chat may run MVP/cutover tasks only if the **user message** names a task I
 | Class | Examples |
 |---|---|
 | User-visible | Operator must tap Telegram, open `https://panel.rookari.com`, or run a query they own |
-| Missing prerequisite | P1 blocks M6-T4; P2 blocks M7-T5/M8 |
+| Missing prerequisite | P2 blocks M7-T5/M8 |
 | High risk | Weight 13 or 21; DNS; production token; writer freeze; M8 |
 | Failure | Test/gate fail; `PLAN REVISION REQUIRED` |
 | Checkpoint end | End of M6.1 after T3; MVP-VERIFIED; M7/M8 boundaries |
 
-M6.1 = {M6-T1, M6-T2, M6-T3} **DONE**. Named-start for M6-T4 must not run without P1 (isolated C2C + user-visible). Do not auto-start M8 from a next-pointer.
+M6.1 = {M6-T1, M6-T2, M6-T3} **DONE**. M6.2 = {M6-T4} **DONE** (G8 PASS). Named-start for M6-T5 (user-visible + high risk). Do not auto-start M8 from a next-pointer.
 
 ### Closeout
 
@@ -103,6 +103,7 @@ Do not keep an Open smoke table in this plan. Closed-batch evidence: `docs/super
 | M6-T1 | DONE 2026-09-01 | `2026-09-01-m6-t1-fa-fallback.md` · smoke `smoke-2026-09-01-m6-t1.md` |
 | M6-T2 | DONE 2026-09-01 | `2026-09-01-m6-t2-toman.md` · smoke `smoke-2026-09-01-m6-t2.md` |
 | M6-T3 | DONE 2026-09-01 | `2026-09-01-m6-t3-wholesale.md` · smoke `smoke-2026-09-01-m6-t3.md` |
+| M6-T4 | DONE 2026-09-02 | `2026-09-02-m6-t4-c2c-g8.md` · smoke `smoke-2026-09-02-m6-t4.md` |
 
 Evidence root: `docs/superpowers/evidence/`. How-to bodies for closed tasks live only in the frozen archive.
 
@@ -116,7 +117,7 @@ Evidence root: `docs/superpowers/evidence/`. How-to bodies for closed tasks live
 | 2 | Maintained bot | `/opt/remnabot1` · `origin` = `k4lantar4/remnabot1` · 4.2.0 · branch `prod-cutover` | Working source |
 | 3 | Upstream bot | `BEDOLAGA-DEV/remnawave-bedolaga-telegram-bot` | Fetch/compare only |
 | 4 | Upstream working tree | `/opt/bot` | READ-ONLY. Never compose-up, restore, or implement |
-| 5 | RC runtime | `bot-v4` / `91.107.144.95` · test token · `panel.rookari.com` | Sandbox `remnabot1_postgres_data` still **`0110`** — do not rebuild against the graft. Isolated rehearsal bot is not polling |
+| 5 | RC runtime | `bot-v4` / `91.107.144.95` · test token · `panel.rookari.com` | Sandbox `remnabot1_postgres_data` still **`0110`** — do not rebuild against the graft. `rehearsal_bot` polling on test token after M6-T4 (G8) |
 | 6 | Production runtime | `Bot` / `91.107.249.43` · `/opt/bot-remnawave` | Live until cutover; then rollback target |
 
 **Cabinet:** `/opt/cabinet` · `k4lantar4/cabinet` / upstream `bedolaga-cabinet`. Independent. Do not merge into remnabot1. Legacy: `/opt/remnabot/cabinet` READ-ONLY.
@@ -186,7 +187,7 @@ Production `.env` is the **behavioral reference**, not a file to copy blindly. N
 | `CABINET_URL` | `https://panel.rookari.com` |
 | `WEB_API_ALLOWED_ORIGINS` | `*` (live `.env`; working RC) |
 | `CABINET_ALLOWED_ORIGINS` | `*` (live `.env`) |
-| `C2C_ENABLED` | `true` (live `.env`). `C2C_ADMIN_CHAT_ID` empty. Do not copy a production admin chat id |
+| `C2C_ENABLED` | `true`. Isolated P1 `C2C_ADMIN_CHAT_ID` on `.env.rehearsal` (fp `0fcbb8097f77ea8b`; ≠ production). Dummy cards. Do not copy a production admin chat id |
 | Remnawave `PANEL_DOMAIN` | `rw.rookari.com` (live `/opt/remnawave/.env`) |
 | Remnawave `FRONT_END_DOMAIN` | `*` (live RW env) |
 | Remnawave `SUB_PUBLIC_DOMAIN` | `config.rookari.com/sub` (live RW env) |
@@ -205,7 +206,7 @@ Cabinet: `VITE_API_URL=/api` (relative) remains. `VITE_TELEGRAM_BOT_USERNAME` on
 
 RC compose must fail closed if `BOT_TOKEN` fingerprint equals the known production fingerprint (M1-T2).
 
-**Two stacks (do not conflate):** live remnabot1 sandbox uses `/opt/remnabot1/.env` and `REMNAWAVE_API_URL=http://remnawave:3000` on `panel.rookari.com` (already running — do not rewrite that `.env` for cutover work; sandbox DB is still **`0110`**). Isolated rehearsal compose uses gitignored `.env.rehearsal` with the **same public URLs** and `REMNAWAVE_API_URL=http://rehearsal_rw:3000` (do not start polling `rehearsal_bot` until a later named batch).
+**Two stacks (do not conflate):** live remnabot1 sandbox uses `/opt/remnabot1/.env` and `REMNAWAVE_API_URL=http://remnawave:3000` on `panel.rookari.com` (already running — do not rewrite that `.env` for cutover work; sandbox DB is still **`0110`**). Isolated rehearsal compose uses gitignored `.env.rehearsal` with the **same public URLs** and `REMNAWAVE_API_URL=http://rehearsal_rw:3000`. `rehearsal_bot` polling on the test token is authorized after M6-T4.
 
 ### Cutover Caddy (five production blocks)
 
@@ -243,7 +244,7 @@ RC may enable C2C **only if all** of: test Telegram bot (not production token); 
 
 If a truly isolated test admin chat cannot be established (P1 missing): do **not** fake PASS. G8 INCOMPLETE ⇒ **MVP-VERIFIED = NO-GO**. Do not post RC receipts into the production admin chat.
 
-Live `/opt/remnabot1/.env` has `C2C_ENABLED=true` and empty `C2C_ADMIN_CHAT_ID`. Empty admin chat is **not** G8 PASS. Empty `C2C_ADMIN_CHAT_ID` falls back to admin notifications chat — do not poll with `C2C_ENABLED=true` until P1 sets an isolated chat.
+P1 **SATISFIED** (M6-T4). `.env.rehearsal` has an isolated `C2C_ADMIN_CHAT_ID` (fp `0fcbb8097f77ea8b`), dummy cards, test token. Empty admin chat would fall back to notifications — do not poll that way. G8 **PASS**.
 
 Protected columns/tables: `c2c_receipts` and related remnabot `0088`/`0094` fields. Grafted graph must not drop them.
 
@@ -325,7 +326,7 @@ Wholesale gating uses the **ported remnabot `price_display` path** (`partner_sta
 
 ## Forbidden actions (DAG edges)
 
-1. **M4-T6 PASS (G6).** G1 restore is **`0111`**. `subscriptions.remnawave_id` **3170/3173**. Full autogenerate would drop C2C/wholesale — **do not commit that**. Do **not** start polling `rehearsal_bot` until a named task requires it. Never `alembic upgrade` / `stamp` `remnabot1_postgres_data` (still **`0110`**) with the grafted graph; `SKIP_MIGRATION=true` if that bot must restart.
+1. **M4-T6 PASS (G6).** G1 restore is **`0111`**. `subscriptions.remnawave_id` **3170/3173**. Full autogenerate would drop C2C/wholesale — **do not commit that**. `rehearsal_bot` polling on the test token is authorized after M6-T4 (G8). Never `alembic upgrade` / `stamp` `remnabot1_postgres_data` (still **`0110`**) with the grafted graph; `SKIP_MIGRATION=true` if that bot must restart.
 2. **Never** `docker compose up` / restore against production or legacy volumes (`remnawave-db-data`, `remnabot1_postgres_data`, `bot-remnawave_postgres_data`, `bot-remnawave_*`, admin/staging fossils). Rehearsal uses only `rehearsal_*` / `cutover_*`.
 3. **Never** start the production-token bot until the old production bot is stopped (M8).
 4. **Never** apply remnabot1 archived upstream `0088–0110` to a remnabot-lineage `0103` database.
@@ -339,14 +340,14 @@ The existing RC `remnabot1` compose project is the **dev sandbox**. Do not resto
 
 | # | Prerequisite | Blocks | Status |
 |---|---|---|---|
-| P1 | Isolated C2C test admin chat (≠ production) | M6-T4, MVP-VERIFIED | **UNKNOWN** — ask the user; do not guess |
+| P1 | Isolated C2C test admin chat (≠ production) | M6-T4, MVP-VERIFIED | **SATISFIED** 2026-09-02. fp `0fcbb8097f77ea8b` ≠ prod notifications. G8 PASS. |
 | P2 | Cloudflare DNS write access | M7-T5, M8 | **UNKNOWN** — ask the user |
 | P3 | Cloudflare token for DNS-01 (optional) | M7-T6 preferred path | **UNKNOWN** — HTTP-01 window if missing |
 | P4 | `remnawave/backend:2.8.1` pullable | M2 (done) | **SATISFIED.** Digest `sha256:361f9bb0b183d4fcefea2f1f7163db490e2aa1ec3b4bdde016a9ab9229ce956b` |
 | P5 | Read-only production RW env/compose on `Bot` | M2 (done); M7-T2 | **SATISFIED.** |
 | P6 | Production bot dump | M2 (done) | **SATISFIED.** SHA-256 `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` |
 
-Remaining path: **STOP** M6-T4 (P1) → M6-T5 (user-visible, G8 required) → M7 → M8 (21, explicit user authorization) → M9.
+Remaining path: **STOP** M6-T5 (user-visible + high risk; G8 PASS) → M7 → M8 (21, explicit user authorization) → M9.
 
 Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone.
 
@@ -354,7 +355,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M6 — Protected behavior + end-to-end MVP
 
-M6-T1, M6-T2, and M6-T3 are DONE (see Closed milestones). Checkpoint **M6.1** complete. Next is M6-T4 (P1).
+M6-T1…T4 are DONE (see Closed milestones). Checkpoints **M6.1** and **M6.2** complete. Next is M6-T5 (named-start; user-visible).
 
 ### Task M6-T3: Wholesale pricing regression gate (G10)
 
@@ -371,11 +372,9 @@ M6-T1, M6-T2, and M6-T3 are DONE (see Closed milestones). Checkpoint **M6.1** co
 ### Task M6-T4: C2C isolated RC test — HARD MVP gate
 
 - **ID:** M6-T4 · **WEIGHT:** 5 · **RISK:** High · **DEPENDENCIES:** M4-T7, P1
-- **STOP class:** Missing prerequisite (P1) + User-visible. Do not start without P1 isolated chat.
-- With the isolated test chat (P1) and test bot: submit a receipt; approve in the test chat; confirm balance credit (Toman scale) + `c2c_receipts` row. Restored historical rows allowed. Never post to the production admin chat.
-- **VERIFICATION (G8):** receipt→approve→balance flow verified in the isolated chat.
-- **FAILURE:** P1 unavailable, or any RC receipt reaches the production admin chat → **G8 INCOMPLETE ⇒ MVP-VERIFIED = NO-GO**.
-- **COMMIT:** `docs(M6-T4): C2C RC PASS (isolated chat)` · **CHECKPOINT:** Checkpoint M6.2.
+- **STATUS:** **DONE** 2026-09-02 (`docs/superpowers/evidence/2026-09-02-m6-t4-c2c-g8.md`). **G8 PASS.** Checkpoint **M6.2**.
+- Isolated P1 chat + test bot: receipt → approve → Toman credit + `c2c_receipts` row. Dummy cards. Never production admin chat.
+- **COMMIT:** `docs(M6-T4): C2C RC PASS (isolated chat)`
 
 ### Task M6-T5: End-to-end RC MVP smoke — MVP-VERIFIED gate
 
@@ -514,4 +513,4 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Do **not** load `docs/superpowers/plans/archive/2026-08-28-production-cutover-mvp.full.md` unless reconstructing a past decision.
 
-**Open:** M6-T4. Named-start + P1 isolated chat required. Checkpoints M0–M5 and M6.1 (T1–T3) complete. Do not start polling `rehearsal_bot` without P1. G8 is M6-T4. P1 and P2 still UNKNOWN — do not guess chat IDs.
+**Open:** M6-T5. Named-start required (user-visible + high risk). Checkpoints M0–M5, M6.1, **M6.2** complete. G8 PASS. P1 SATISFIED. P2 still UNKNOWN. `rehearsal_bot` may remain polling on the test token. Do not start M7 without MVP-VERIFIED.

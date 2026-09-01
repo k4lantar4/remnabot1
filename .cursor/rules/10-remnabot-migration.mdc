@@ -8,7 +8,7 @@ alwaysApply: true
 
 Read first: `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-The MVP plan is the single authority (updated 2026-09-01, including RC public hostname revision). Supporting specs/errata were removed; their binding facts are inlined in the plan. M1, M2, M3, **M4-T0**, **M4-T1**, **M4-T2**, and **M4-T3** are done. M1-T4 (staging-host Caddy) is cancelled. Do not execute M4-T4 until the user explicitly says so.
+The MVP plan is the single authority (updated 2026-09-01, including RC public hostname revision). Supporting specs/errata were removed; their binding facts are inlined in the plan. M1, M2, M3, **M4-T0**, **M4-T1**, **M4-T2**, **M4-T3**, and **M4-T4** are done. M1-T4 (staging-host Caddy) is cancelled. Do not execute M4-T5 until the user explicitly says so.
 
 ---
 
@@ -73,7 +73,7 @@ Never `git init` on cabinet. Never force-push.
 
 ## 5. Forbidden actions (DAG edges)
 
-1. M4-T3 recorded: G1 restore (`rehearsal_bot_pg15`) is **`0111`**. Do not start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` sandbox `remnabot1_postgres_data` (still upstream `0110`) with the grafted graph.
+1. M4-T4 recorded: G1 restore (`rehearsal_bot_pg15`) is **`0111`**. Models match 0111 identity/extras. Do not commit a full `alembic revision --autogenerate` (would create deferred tables and drop C2C/wholesale). Do not start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` sandbox `remnabot1_postgres_data` (still upstream `0110`) with the grafted graph.
 2. Never `docker compose up` / restore against production or legacy volumes (`bot-remnawave_postgres_data`, `remnawave-db-data`, etc.). Rehearsal uses only `rehearsal_*` / `cutover_*` names.
 3. Never start the production-token bot until the old production bot is stopped (M8).
 4. Never apply archived remnabot1 upstream `0088–0110` (now under `docs/superpowers/reference/upstream-alembic-0088-0110/`) to a remnabot-lineage `0103` database.
@@ -85,9 +85,9 @@ Set `SKIP_MIGRATION=true` on sandbox `remnawave_bot` if it must restart (DB is s
 
 ## 6. Alembic (graft — binding)
 
-Production bot DB is remnabot-lineage **`0103`**. remnabot1 **live graph after M4-T3** is remnabot **`0111`** (remnawave_id + boot extras; revises grafted `0104`). Rehearsal G1 restore (`rehearsal_bot_pg15`) is **`0111`**. Upstream `0088–0110` lives only under `docs/superpowers/reference/upstream-alembic-0088-0110/`.
+Production bot DB is remnabot-lineage **`0103`**. remnabot1 **live graph after M4-T3** is remnabot **`0111`** (remnawave_id + boot extras; revises grafted `0104`). Rehearsal G1 restore (`rehearsal_bot_pg15`) is **`0111`**. Models match `0111` identity/extras (M4-T4). Upstream `0088–0110` lives only under `docs/superpowers/reference/upstream-alembic-0088-0110/`.
 
-**Required next:** M4-T4 models match `0111` (no drift). Do not copy archived upstream files back into `versions/`.
+**Required next:** M4-T5 `persist_identity` seam (panel numeric `.id`). Do not copy archived upstream files back into `versions/`. Do not commit a full autogenerate revision.
 
 **§18.1 cutover exception:** grafting remnabot `0088–0104` is authorized. “Never reuse donor revision IDs” forbids copying **upstream `/opt/bot`** migrations onto production data — not production-lineage recovery.
 

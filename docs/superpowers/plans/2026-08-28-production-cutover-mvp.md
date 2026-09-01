@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **Do not execute M4-T4 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **Do not execute M4-T5 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -86,19 +86,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M4-T3 closed. **Wait:** user numbered OK → **M4-T4**.  
-**User smoke:** none (schema migration; no polling bot).  
-**Last closed:** M4-T3 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t3.md`).
+**Batch open:** none — M4-T4 closed. **Wait:** user numbered OK → **M4-T5**.  
+**User smoke:** none (ORM mapping; no polling bot).  
+**Last closed:** M4-T4 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t4.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `alembic heads` | `0111` only; `down_revision='0104'` | graft `0104` | **PASS** |
-| 2 | Agent | 0111 sqlite upgrade/downgrade | remnawave_id + extras; no grace/cispay/lava/coupon **tables**; c2c/wholesale kept | TDD | **PASS** |
-| 3 | Agent | G5 on restore clone then G1 | alembic `0111`; C2C/wholesale columns present | `0103` | **PASS** |
-| 4 | Agent | downgrade round-trip on clone | extras dropped; protected columns remain; re-upgrade → `0111` | G5 | **PASS** |
-| 5 | Agent | sandbox / `rehearsal_bot` | still `0110`; app absent; not rebuilt | M4-T2 | **PASS** |
+| 1 | Agent | User `remnawave_id` | `BigInteger` nullable, `unique=True`, `index=True` | 4.2 models | **PASS** |
+| 2 | Agent | Subscription `remnawave_id` | plain nullable BIGINT + partial unique `uq_subscriptions_remnawave_id` | 4.2 models | **PASS** |
+| 3 | Agent | 0111 extras mapped | referral/grace/`description`/`lava_product_id`/`traffic_gb` | M4-T3 | **PASS** |
+| 4 | Agent | scoped autogenerate vs G1 | no ALTER of 0111 identity/extras; no DROP of C2C/wholesale/`user_disabled` | G1 `0111` | **PASS** |
+| 5 | Agent | sandbox / `rehearsal_bot` | still `0110`; app absent; not rebuilt | M4-T3 | **PASS** |
 
-Wait after this batch: user numbered OK → **M4-T4** (models match `0111`). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`.
+Wait after this batch: user numbered OK → **M4-T5** (`persist_identity` seam). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. Do not commit a full autogenerate revision.
 
 ---
 
@@ -562,7 +562,7 @@ Refactor **now** only if it directly reduces: migration risk, duplicated compati
 
 ## Forbidden actions (DAG edges)
 
-1. **M4-T3 PASS.** G1 restore (`rehearsal_bot_pg15`) is now **`0111`**. Do **not** start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` the sandbox volume `remnabot1_postgres_data` (still upstream **`0110`**) with the grafted graph; restart that bot only with `SKIP_MIGRATION=true`.
+1. **M4-T4 PASS.** G1 restore is **`0111`**. Models match 0111 identity/extras. Full `alembic revision --autogenerate` still proposes deferred 4.2 tables and would drop C2C/wholesale/`user_disabled` — **do not commit that**. Do **not** start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` the sandbox volume `remnabot1_postgres_data` (still upstream **`0110`**) with the grafted graph; restart that bot only with `SKIP_MIGRATION=true`.
 2. **Never** `docker compose up` / restore against production or legacy volumes (`remnawave-db-data`, `remnabot1_postgres_data`, `bot-remnawave_postgres_data`, `bot-remnawave_*`, admin/staging fossils). Rehearsal uses only `rehearsal_*` / `cutover_*`.
 3. **Never** start the production-token bot until the old production bot is stopped (M8).
 4. **Never** apply remnabot1 live-graph `0088–0110` to a remnabot-lineage `0103` database.
@@ -636,7 +636,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). M1-T4 cancelled. Do not execute M4-T4 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. M1-T4 cancelled. Do not execute M4-T5 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1086,8 +1086,15 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M4-T4: Models match `0111` (no drift)
 
-- **WEIGHT:** 3 · **DEPENDENCIES:** M4-T3
-- Port remnawave_id mapping from remnabot1’s current models onto the grafted graph: User `unique=True,index=True`; Subscription plain column + `__table_args__` partial Index. `alembic revision --autogenerate` = no diff.
+- **WEIGHT:** 3 · **DEPENDENCIES:** M4-T3 · **STATUS:** **DONE** 2026-09-01
+- remnabot1 4.2 already maps identity onto the grafted graph: User `unique=True,index=True` → `ix_users_remnawave_id`; Subscription plain column + `__table_args__` partial `uq_subscriptions_remnawave_id`. **No model edit.**
+- **Autogenerate:** scoped to 0111-owned columns/indexes = **no diff**. Full `compare_metadata` vs G1 is **not** empty (9 deferred `create_table` + would drop `c2c_receipts` / wholesale / `user_disabled`). Do **not** commit a full autogenerate revision. Evidence: `docs/superpowers/evidence/2026-09-01-m4-t4-models-match-0111.md`.
+- **COMMIT:** `test(M4-T4): lock models to 0111 remnawave_id mapping`
+
+- [x] User `remnawave_id` unique+index BIGINT matches `0111`
+- [x] Subscription plain `remnawave_id` + partial unique matches `0111`
+- [x] 0111 extras mapped; TDD RED then GREEN
+- [x] Scoped autogenerate 0 owned ops; full autogenerate not applied
 
 ### M4-T5: `persist_identity` seam (panel `.id`, not uuid lookup)
 
@@ -1299,7 +1306,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M4-T4 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**, **M4-T1**, **M4-T2**, and **M4-T3** are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M4-T5 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**, **M4-T1**, **M4-T2**, **M4-T3**, and **M4-T4** are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1310,7 +1317,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M4-T3 → **M4-T4**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`).
+6. User gate now: numbered OK on M4-T4 → **M4-T5**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`).
 
 ---
 
@@ -1318,11 +1325,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3** (Alembic `0111`; G1 restore is `0111`) 2026-09-01.
+**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4** (models match `0111`; no model edit) 2026-09-01.
 
-**Not started:** M4-T4 (models match `0111`), DNS, cutover. M1-T4 cancelled.
+**Not started:** M4-T5 (`persist_identity` seam), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M4-T4** (models match `0111`; autogenerate = no diff). User smoke: none. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`.
+**Next after user numbered OK:** **M4-T5** (`persist_identity` seam; panel numeric `.id`, not uuid lookup). User smoke: none. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. Do not commit a full autogenerate revision.
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

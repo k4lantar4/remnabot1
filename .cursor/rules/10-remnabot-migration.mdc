@@ -10,7 +10,7 @@ Read the **live** plan `docs/superpowers/plans/2026-08-28-production-cutover-mvp
 
 Frozen history (default **off**): `docs/superpowers/plans/archive/2026-08-28-production-cutover-mvp.full.md`. Read it only to reconstruct a past decision or `PLAN REVISION`. If archive and live plan disagree, the live plan wins for execution.
 
-The live plan is Alembic + cutover execution authority (slim 2026-09-01). M0–M5, **M6-T1**, and **M6-T2** are done. M1-T4 (staging-host Caddy) is cancelled. Open = **M6-T3**. Do not start polling `rehearsal_bot`. G8 isolated C2C chat is **M6-T4**.
+The live plan is Alembic + cutover execution authority (slim 2026-09-01). M0–M5 and **M6.1** (T1–T3) are done. M1-T4 (staging-host Caddy) is cancelled. Open = **M6-T4**. Do not start polling `rehearsal_bot`. G8 isolated C2C chat is **M6-T4** (needs P1).
 
 **Named-start:** a new chat may run MVP/cutover tasks only if the user message names a task ID or says **ادامه** / **شروع M6** (or the current open milestone). Greeting, status, or “what is next?” is not named-start — report the next pointer and stop. `ادامه` cannot cross a STOP class (M6-T4 needs P1).
 
@@ -93,7 +93,7 @@ Set `SKIP_MIGRATION=true` on sandbox `remnawave_bot` if it must restart (DB is s
 
 Production bot DB is remnabot-lineage **`0103`**. remnabot1 **live graph after M4-T3** is remnabot **`0111`** (remnawave_id + boot extras; revises grafted `0104`). Rehearsal G1 restore (`rehearsal_bot_pg15`) is **`0111`** with G6 backfill (`subscriptions.remnawave_id` 3170/3173). Models match `0111` identity/extras (M4-T4). `persist_identity` writes panel numeric `.id` (M4-T5). Upstream `0088–0110` lives only under `docs/superpowers/reference/upstream-alembic-0088-0110/`.
 
-**Required next:** M6-T3 wholesale pricing regression gate (named-start). Do not copy archived upstream files back into `versions/`. Do not commit a full autogenerate revision. Do not start polling `rehearsal_bot`.
+**Required next:** M6-T4 C2C isolated RC test (named-start + P1). Do not copy archived upstream files back into `versions/`. Do not commit a full autogenerate revision. Do not start polling `rehearsal_bot` without an isolated C2C chat.
 
 **§18.1 cutover exception:** grafting remnabot `0088–0104` is authorized. “Never reuse donor revision IDs” forbids copying **upstream `/opt/bot`** migrations onto production data — not production-lineage recovery.
 

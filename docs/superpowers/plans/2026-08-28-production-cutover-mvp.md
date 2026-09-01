@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: **superpowers:executing-plans**. Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Named-start + STOP classes (Session contract) are binding. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Do **not** run M7–M9 from a next-pointer. Frozen full-text history: `docs/superpowers/plans/archive/2026-08-28-production-cutover-mvp.full.md` (default **off** — do not read unless reconstructing a past decision or `PLAN REVISION`). If archive and this file disagree, **this file wins** for execution.
 >
-> **Next pointer (2026-09-01):** open = **M6-T3** (wholesale gate). M6-T1 / M6-T2 DONE. M1-T4 cancelled. Do not poll `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain M6-T4. Named-start required to run M6-T3; this slim rewrite does not start it.
+> **Next pointer (2026-09-01):** open = **M6-T4** (G8 C2C; needs P1). M6-T1 / M6-T2 / **M6-T3 DONE**. Checkpoint **M6.1** complete. M1-T4 cancelled. Do not poll `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). Named-start + P1 isolated chat required to run M6-T4.
 >
 > **RC public hostname:** `panel.rookari.com` (live `/opt/remnabot1/.env` + `/opt/caddy/Caddyfile`). Do **not** put `staging-host-*` in RC env. M1-T4 (author `staging-host-*` Caddy) is **cancelled**.
 
@@ -57,7 +57,7 @@ A new chat may run MVP/cutover tasks only if the **user message** names a task I
 | Failure | Test/gate fail; `PLAN REVISION REQUIRED` |
 | Checkpoint end | End of M6.1 after T3; MVP-VERIFIED; M7/M8 boundaries |
 
-M6.1 = {M6-T1, M6-T2, M6-T3}. T1/T2 DONE. A named-start for M6-T3 may run T3 and must **STOP before M6-T4** (P1 + isolated C2C + user-visible). Do not auto-start M8 from a next-pointer.
+M6.1 = {M6-T1, M6-T2, M6-T3} **DONE**. Named-start for M6-T4 must not run without P1 (isolated C2C + user-visible). Do not auto-start M8 from a next-pointer.
 
 ### Closeout
 
@@ -102,6 +102,7 @@ Do not keep an Open smoke table in this plan. Closed-batch evidence: `docs/super
 | M5-T1…T3 | DONE 2026-09-01 | `2026-09-01-m5-t1-rc-cabinet.md`, `2026-09-01-m5-t2-cabinet-source.md`, `2026-09-01-m5-t3-cabinet-jwt.md` |
 | M6-T1 | DONE 2026-09-01 | `2026-09-01-m6-t1-fa-fallback.md` · smoke `smoke-2026-09-01-m6-t1.md` |
 | M6-T2 | DONE 2026-09-01 | `2026-09-01-m6-t2-toman.md` · smoke `smoke-2026-09-01-m6-t2.md` |
+| M6-T3 | DONE 2026-09-01 | `2026-09-01-m6-t3-wholesale.md` · smoke `smoke-2026-09-01-m6-t3.md` |
 
 Evidence root: `docs/superpowers/evidence/`. How-to bodies for closed tasks live only in the frozen archive.
 
@@ -345,7 +346,7 @@ The existing RC `remnabot1` compose project is the **dev sandbox**. Do not resto
 | P5 | Read-only production RW env/compose on `Bot` | M2 (done); M7-T2 | **SATISFIED.** |
 | P6 | Production bot dump | M2 (done) | **SATISFIED.** SHA-256 `b5fc023a23e99471ab9a4a61f834989ff7ff21c7f6061af4f926e404c093cb85` |
 
-Remaining path: M6-T3 (Agent-only) → **STOP** M6-T4 (P1) → M6-T5 (user-visible, G8 required) → M7 → M8 (21, explicit user authorization) → M9.
+Remaining path: **STOP** M6-T4 (P1) → M6-T5 (user-visible, G8 required) → M7 → M8 (21, explicit user authorization) → M9.
 
 Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone.
 
@@ -353,15 +354,19 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M6 — Protected behavior + end-to-end MVP
 
-M6-T1 and M6-T2 are DONE (see Closed milestones). Checkpoint **M6.1** stays open until M6-T3.
+M6-T1, M6-T2, and M6-T3 are DONE (see Closed milestones). Checkpoint **M6.1** complete. Next is M6-T4 (P1).
 
 ### Task M6-T3: Wholesale pricing regression gate (G10)
 
 - **ID:** M6-T3 · **WEIGHT:** 3 · **DEPENDENCIES:** M4-T7
+- **STATUS:** **DONE** 2026-09-01 (`docs/superpowers/evidence/2026-09-01-m6-t3-wholesale.md`).
 - **STOP after:** Checkpoint end M6.1 + next task is M6-T4 (P1).
 - Lock wholesale gating on `partner_status`+`wholesale_discount_bps` via the **ported remnabot `price_display` path**, not the lost T2.1 `app/custom/pricing` seam.
-- Test `tests/services/test_wholesale_pricing.py` (adapt from remnabot). Integer BPS, floor; approved partner discounted, revoked not.
+- Test `tests/services/test_wholesale_pricing.py` (adapt from remnabot). Integer BPS, floor; approved partner discounted, revoked not. `PartnerStatus` has no `REVOKED`; gate uses **`REJECTED`**.
 - **COMMIT:** `test(M6-T3): wholesale gate`
+
+- [x] **Step 1:** Named gate `tests/services/test_wholesale_pricing.py` (7 tests).
+- [x] **Step 2:** Ported `tests/test_wholesale_pricing.py` 11 passed; `import main` OK; `rehearsal_bot` not started; `remnawave_bot` not rebuilt this batch.
 
 ### Task M6-T4: C2C isolated RC test — HARD MVP gate
 
@@ -509,4 +514,4 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Do **not** load `docs/superpowers/plans/archive/2026-08-28-production-cutover-mvp.full.md` unless reconstructing a past decision.
 
-**Open:** M6-T3. Named-start to run it. Checkpoints M0–M5 and M6-T1/T2 complete. Do not start polling `rehearsal_bot`. G8 remains M6-T4. P1 and P2 still UNKNOWN — do not guess chat IDs.
+**Open:** M6-T4. Named-start + P1 isolated chat required. Checkpoints M0–M5 and M6.1 (T1–T3) complete. Do not start polling `rehearsal_bot` without P1. G8 is M6-T4. P1 and P2 still UNKNOWN — do not guess chat IDs.

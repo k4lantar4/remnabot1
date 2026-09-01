@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **M5-T1 DONE** (RC cabinet from `/opt/cabinet` on `panel.rookari.com`; split compose; user smoke **تایید**). **M5-T2 DONE** (canonical `/opt/cabinet`; no remnabot embed). **M5-T3 DONE** (rehearsal `CABINET_JWT_SECRET` fp `6e66e417433351da` ≠ prod `818cf61ccf8f100d`). **M6-T1 DONE** (FA fallback gate `tests/localization/test_fa_fallback.py`). **Do not execute M6-T2 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **M5-T1 DONE** (RC cabinet from `/opt/cabinet` on `panel.rookari.com`; split compose; user smoke **تایید**). **M5-T2 DONE** (canonical `/opt/cabinet`; no remnabot embed). **M5-T3 DONE** (rehearsal `CABINET_JWT_SECRET` fp `6e66e417433351da` ≠ prod `818cf61ccf8f100d`). **M6-T1 DONE** (FA fallback gate). **M6-T2 DONE** (Toman dual-scale gate). **Do not execute M6-T3 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -86,19 +86,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** M6-T1. **Wait:** user numbered OK → **M6-T2**.  
-**User smoke:** none (FA unit gate; no polling bot).  
-**Last closed:** M5-T3 (`docs/superpowers/evidence/smoke-2026-09-01-m5-t3.md`).
+**Batch open:** M6-T2. **Wait:** user numbered OK → **M6-T3**.  
+**User smoke:** none (Toman unit gate; no polling bot).  
+**Last closed:** M6-T1 (`docs/superpowers/evidence/smoke-2026-09-01-m6-t1.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `pytest tests/localization/test_fa_fallback.py` | 4 passed | remnabot had no `test_fa_fallback.py` | **PASS** |
-| 2 | Agent | `pytest tests/localization` | 15 passed, 1 skipped (`test_fa_en_ru_chain`) | M4-T7 localization tests | **PASS** |
-| 3 | Agent | `uv run python -c "import main"` | OK | M4-T7 | **PASS** |
-| 4 | Agent | `grep -r get_admin_texts app/` | 0 | M4-T7 | **PASS** |
-| 5 | Agent | `rehearsal_bot` / `remnawave_bot` | app absent; sandbox not rebuilt this batch | M5-T3 | **PASS** |
+| 1 | Agent | `pytest tests/utils/test_price_display_toman.py` | 8 passed | remnabot had no `test_price_display_toman.py` | **PASS** |
+| 2 | Agent | `pytest tests/utils/test_price_display.py` | 25 passed | M4-T7 helpers | **PASS** |
+| 3 | Agent | `uv run python -c "import main"` | OK | M6-T1 | **PASS** |
+| 4 | Agent | `grep -r get_admin_texts app/` | 0 | M6-T1 | **PASS** |
+| 5 | Agent | `rehearsal_bot` / `remnawave_bot` | app absent; sandbox not rebuilt this batch | M6-T1 | **PASS** |
 
-Wait after this batch: user numbered OK → **M6-T2** (Toman dual-scale regression gate). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4. Checkpoint M6.1 stays open until M6-T2 and M6-T3.
+Wait after this batch: user numbered OK → **M6-T3** (wholesale pricing regression gate). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4. Checkpoint M6.1 stays open until M6-T3.
 
 ---
 
@@ -636,7 +636,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). **M5-T1 DONE** (user smoke **تایید**). **M5-T2 DONE**. **M5-T3 DONE**. **M6-T1 DONE** (FA fallback gate). M1-T4 cancelled. Do not execute M6-T2 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). **M5-T1 DONE** (user smoke **تایید**). **M5-T2 DONE**. **M5-T3 DONE**. **M6-T1 DONE** (FA fallback gate). **M6-T2 DONE** (Toman dual-scale gate). M1-T4 cancelled. Do not execute M6-T3 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1194,8 +1194,13 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 ### Task M6-T2: Toman dual-scale regression gate
 
 - **ID:** M6-T2 · **WEIGHT:** 3 · **DEPENDENCIES:** M4-T7
-- Test `tests/utils/test_price_display_toman.py`. Cover display helpers used after the remnabot port (`تومان`, fa-IR grouping). Dual-scale: catalog kopeks÷100 vs balance Toman 1:1; `BALANCE_TOMAN_CUTOFF_UTC`.
+- **STATUS:** **DONE** 2026-09-01 (`docs/superpowers/evidence/2026-09-01-m6-t2-toman.md`).
+- Test `tests/utils/test_price_display_toman.py` (remnabot had no file of that name; gate authored here). Cover display helpers used after the remnabot port (`تومان`, fa-IR grouping). Dual-scale: catalog kopeks÷100 vs balance Toman 1:1; `BALANCE_TOMAN_CUTOFF_UTC`.
 - **COMMIT:** `test(M6-T2): Toman gate`
+
+- [x] **Step 1:** Named gate `tests/utils/test_price_display_toman.py` (8 tests).
+- [x] **Step 2:** TDD RED then GREEN on `calculate_missing_amount` mixed-scale (990550 → 550).
+- [x] **Step 3:** `test_price_display.py` 25 passed; `import main` OK; `rehearsal_bot` not started; `remnawave_bot` not rebuilt this batch.
 
 ### Task M6-T3: Wholesale pricing regression gate (G10)
 
@@ -1348,7 +1353,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M6-T2 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**–**M4-T7**, **M5-T1**–**M5-T3**, and **M6-T1** are complete. Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4. Checkpoint M6.1 stays open until M6-T2 and M6-T3.
+**Do not execute M6-T3 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**–**M4-T7**, **M5-T1**–**M5-T3**, **M6-T1**, and **M6-T2** are complete. Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4. Checkpoint M6.1 stays open until M6-T3.
 
 ---
 
@@ -1359,7 +1364,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M6-T1 → **M6-T2**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
+6. User gate now: numbered OK on M6-T2 → **M6-T3**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
 
 ---
 
@@ -1367,11 +1372,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port), **M5-T1** (RC cabinet split compose @ cabinet `95d49d8b`, user smoke **تایید**), **M5-T2** (canonical `/opt/cabinet`), **M5-T3** (rehearsal JWT fp `6e66e417433351da` ≠ prod), **M6-T1** (FA fallback gate `tests/localization/test_fa_fallback.py`, 4 passed) 2026-09-01.
+**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port), **M5-T1** (RC cabinet split compose @ cabinet `95d49d8b`, user smoke **تایید**), **M5-T2** (canonical `/opt/cabinet`), **M5-T3** (rehearsal JWT fp `6e66e417433351da` ≠ prod), **M6-T1** (FA fallback gate), **M6-T2** (Toman dual-scale gate + `calculate_missing_amount` mixed-scale fix) 2026-09-01.
 
-**Not started:** M6-T2..T5, DNS, cutover. M1-T4 cancelled.
+**Not started:** M6-T3..T5, DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M6-T2** (Toman dual-scale regression gate). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
+**Next after user numbered OK:** **M6-T3** (wholesale pricing regression gate). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

@@ -239,6 +239,8 @@ class AdminStates(StatesGroup):
     editing_tariff_custom_traffic_max = State()
     editing_tariff_daily_price = State()
 
+    c2c_custom_amount = State()
+
 
 class SupportStates(StatesGroup):
     waiting_for_message = State()

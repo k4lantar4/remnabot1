@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **M5-T1 DONE** (RC cabinet from `/opt/cabinet` on `panel.rookari.com`; split compose; user smoke **تایید**). **M5-T2 DONE** (canonical `/opt/cabinet`; no remnabot embed). **Do not execute M5-T3 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **M4-T7 DONE** (C2C/FA/Toman/wholesale port; G8 not this batch). **M5-T1 DONE** (RC cabinet from `/opt/cabinet` on `panel.rookari.com`; split compose; user smoke **تایید**). **M5-T2 DONE** (canonical `/opt/cabinet`; no remnabot embed). **M5-T3 DONE** (rehearsal `CABINET_JWT_SECRET` fp `6e66e417433351da` ≠ prod `818cf61ccf8f100d`). **Do not execute M6-T1 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -86,19 +86,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** M5-T2 closed. **Wait:** user numbered OK → **M5-T3**.  
-**User smoke:** none (path/compose verification).  
-**Last closed:** M5-T2 (`docs/superpowers/evidence/smoke-2026-09-01-m5-t2.md`). M5-T1 user row **PASS** (`docs/superpowers/evidence/smoke-2026-09-01-m5-t1.md`).
+**Batch open:** M5-T3 closed. **Wait:** user numbered OK → **M6-T1**.  
+**User smoke:** none (JWT fingerprint / isolation).  
+**Last closed:** M5-T3 (`docs/superpowers/evidence/smoke-2026-09-01-m5-t3.md`). Batch M5 complete.
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `test -d` `/opt/cabinet` `/opt/cabinet1` `/opt/remnabot1/cabinet` | canonical present; cabinet1 and remnabot1 embed absent | M5-T1 | **PASS** |
-| 2 | Agent | `git ls-files cabinet/` in remnabot1 | empty frontend embed | — | **PASS** |
-| 3 | Agent | rehearsal `compose config` | `context: /opt/cabinet`; no `/opt/remnabot/cabinet` | M1-T1 already used `/opt/cabinet` | **PASS** |
-| 4 | Agent | live `cabinet_frontend` labels | working_dir `/opt/cabinet` | M5-T1 | **PASS** |
-| 5 | Agent | `remnawave_bot` / `rehearsal_bot` | bot id unchanged; rehearsal app not started | M5-T1 | **PASS** |
+| 1 | Agent | `.env.rehearsal` `CABINET_JWT_SECRET` fp | `6e66e417433351da`; ≠ prod | M1-T3 generated | **PASS** |
+| 2 | Agent | `ssh bot` prod `CABINET_JWT_SECRET` fp | `818cf61ccf8f100d` (equals prod `BOT_TOKEN`) | env-matrix 2026-08-31 | **PASS** |
+| 3 | Agent | prod-signed HS256 JWT × rehearsal secret | `InvalidSignatureError` | unproven this batch | **PASS** |
+| 4 | Agent | gitignore + `git grep CABINET_JWT_SECRET=` | env ignored; no tracked values | M1-T3 | **PASS** |
+| 5 | Agent | `remnawave_bot` / `rehearsal_bot` | bot id unchanged; rehearsal app not started | M5-T2 | **PASS** |
 
-Wait after this batch: user numbered OK → **M5-T3** (RC `CABINET_JWT_SECRET` class C fingerprint). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4.
+Wait after this batch: user numbered OK → **M6-T1** (FA fallback regression gate). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. G8 / P1 remain for M6-T4.
 
 ---
 
@@ -636,7 +636,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). **M5-T1 DONE** (user smoke **تایید**). **M5-T2 DONE**. M1-T4 cancelled. Do not execute M5-T3 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). **M4-T7 DONE** (C2C/FA/Toman/wholesale). **M5-T1 DONE** (user smoke **تایید**). **M5-T2 DONE**. **M5-T3 DONE**. M1-T4 cancelled. Do not execute M6-T1 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1167,7 +1167,12 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 ### Task M5-T3: RC JWT (class C)
 
 - **ID:** M5-T3 · **WEIGHT:** 2 · **RISK:** Medium · **DEPENDENCIES:** M1-T3
+- **STATUS:** **DONE** 2026-09-01 (`docs/superpowers/evidence/2026-09-01-m5-t3-cabinet-jwt.md`).
 - `.env.rehearsal` (`CABINET_JWT_SECRET`=generated). Fingerprint ≠ production. Production JWT must not validate on RC. No secret in git.
+
+- [x] **Step 1:** Re-fingerprint rehearsal `6e66e417433351da` vs production `818cf61ccf8f100d` (`ssh bot`, read-only).
+- [x] **Step 2:** Prod-signed HS256 dummy fails on rehearsal secret (`InvalidSignatureError`). Rehearsal self-decode OK.
+- [x] **Step 3:** `.env.rehearsal` / `.env` / `.env.cutover` gitignored; no tracked secret values. Live sandbox `.env` not rewritten. `rehearsal_bot` not started; `remnawave_bot` not rebuilt.
 
 **Batch M5** = {M5-T1,M5-T2,M5-T3} (10, NORMAL).
 
@@ -1338,7 +1343,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M5-T3 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**–**M4-T7**, **M5-T1**, and **M5-T2** are complete. Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4.
+**Do not execute M6-T1 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**–**M4-T7**, and **M5-T1**–**M5-T3** are complete. Follow Session contract (one batch + Open smoke). Do not start polling `rehearsal_bot`. G8 remains M6-T4.
 
 ---
 
@@ -1349,7 +1354,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M5-T2 → **M5-T3**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
+6. User gate now: numbered OK on M5-T3 → **M6-T1**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`). G8 / P1 remain for M6-T4.
 
 ---
 
@@ -1357,11 +1362,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port), **M5-T1** (RC cabinet split compose @ cabinet `95d49d8b`, user smoke **تایید**), **M5-T2** (canonical `/opt/cabinet`) 2026-09-01.
+**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173), **M4-T7** (C2C/FA/Toman/wholesale port), **M5-T1** (RC cabinet split compose @ cabinet `95d49d8b`, user smoke **تایید**), **M5-T2** (canonical `/opt/cabinet`), **M5-T3** (rehearsal JWT fp `6e66e417433351da` ≠ prod) 2026-09-01.
 
-**Not started:** M5-T3, M6 gates (G8), DNS, cutover. M1-T4 cancelled.
+**Not started:** M6 gates (G8), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M5-T3** (RC `CABINET_JWT_SECRET` class C; fingerprint ≠ production). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
+**Next after user numbered OK:** **M6-T1** (FA fallback regression gate). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`. G8 is M6-T4 (needs P1 isolated chat + dedicated `C2C_ADMIN_CHAT_ID`).
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

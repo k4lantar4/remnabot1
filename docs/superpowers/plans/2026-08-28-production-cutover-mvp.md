@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL for each new chat: **superpowers:executing-plans**. One open batch only, then stop. Do **not** run the whole plan. Do **not** invoke finishing-a-development-branch until the user says the cutover work is done. Subagent-driven-development is optional *inside* a batch (fresh subagent per task), not a license to start M2–M8 in one session. Steps use checkbox (`- [ ]` / `- [x]`). Code tasks use TDD; operational tasks use evidence gates. "Container started" / "build passed" is **never** a PASS. Session contract + Open smoke below are binding.
 >
-> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **Do not execute M4-T6 until the user confirms this batch.** M1-T4 remains cancelled.
+> **Plan updated 2026-09-01.** **M2 DONE.** **M3 DONE.** **M4-T0 DONE.** **M4-T1 DONE** (4.2 does **not** boot cleanly on remnabot `0104` schema; MVP schema ≠ remnawave_id only). **M4-T2 DONE** (3.x client matches rehearsal 3.4.3; no rewrite). **M4-T3 DONE** (Alembic `0111` remnawave_id + extras; G1 restore is `0111`). **M4-T4 DONE** (models already match `0111`; full autogenerate is **not** empty — deferred tables + C2C/wholesale). **M4-T5 DONE** (`persist_identity` seam; panel `.id` only). **M4-T6 DONE** (G6 backfill; 3170/3173 shortUuid). **Do not execute M4-T7 until the user confirms this batch.** M1-T4 remains cancelled.
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
@@ -86,19 +86,19 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M4-T5 closed. **Wait:** user numbered OK → **M4-T6**.  
-**User smoke:** none (adapter; no polling bot).  
-**Last closed:** M4-T5 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t5.md`).
+**Batch open:** none — M4-T6 closed. **Wait:** user numbered OK → **M4-T7**.  
+**User smoke:** none (DB backfill; no polling bot).  
+**Last closed:** M4-T6 (`docs/superpowers/evidence/smoke-2026-09-01-m4-t6.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `persist_identity` User path | writes `user.remnawave_id` from panel `.id` | scatter assign | **PASS** |
-| 2 | Agent | `persist_identity` Subscription path | writes `subscription.remnawave_id` from panel `.id` | scatter assign | **PASS** |
-| 3 | Agent | UUID / `resolve_remnawave_id(uuid=…)` | rejected; no uuid lookup | M3-ID 404 | **PASS** |
-| 4 | Agent | pytest persist_identity | RED then GREEN | missing module | **PASS** |
-| 5 | Agent | sandbox / `rehearsal_bot` | still `0110`; app absent; not rebuilt | M4-T4 | **PASS** |
+| 1 | Agent | M3-ID keys vs `_match_subscription` | exact key `short_uuid`; no rewrite | M3-ID MATCH | **PASS** |
+| 2 | Agent | dry-run on `rehearsal_bot_pg15` | 3170/3173; `with_id` stays 0 | all NULL | **PASS** |
+| 3 | Agent | `--apply` + G6 join | 3170 matches; 0 mismatches | dry-run | **PASS** |
+| 4 | Agent | pytest backfill + persist_identity | 49 passed; grace skip RED→GREEN | missing-table abort | **PASS** |
+| 5 | Agent | sandbox / `rehearsal_bot` | still `0110`; app absent; not rebuilt | M4-T5 | **PASS** |
 
-Wait after this batch: user numbered OK → **M4-T6** (backfill; dry-run default). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`. Do not run backfill `--apply` until T6.
+Wait after this batch: user numbered OK → **M4-T7** (port C2C/FA/Toman/wholesale). Do not start polling `rehearsal_bot`. Do not rebuild `remnawave_bot`.
 
 ---
 
@@ -562,7 +562,7 @@ Refactor **now** only if it directly reduces: migration risk, duplicated compati
 
 ## Forbidden actions (DAG edges)
 
-1. **M4-T5 PASS.** G1 restore is **`0111`**. Models match 0111 identity/extras. `persist_identity` writes panel `.id` only. Full `alembic revision --autogenerate` still proposes deferred 4.2 tables and would drop C2C/wholesale/`user_disabled` — **do not commit that**. Do **not** start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` the sandbox volume `remnabot1_postgres_data` (still upstream **`0110`**) with the grafted graph; restart that bot only with `SKIP_MIGRATION=true`. Do not run identity backfill `--apply` until **M4-T6**.
+1. **M4-T6 PASS (G6).** G1 restore is **`0111`**. `subscriptions.remnawave_id` **3170/3173** via `short_uuid`; 0 join mismatches. `users.remnawave_id` stays 0 (multi-tariff). `grace_access_sessions` still absent. Full `alembic revision --autogenerate` still proposes deferred 4.2 tables and would drop C2C/wholesale/`user_disabled` — **do not commit that**. Do **not** start polling `rehearsal_bot` until a later named batch. Never `alembic upgrade` / `stamp` the sandbox volume `remnabot1_postgres_data` (still upstream **`0110`**) with the grafted graph; restart that bot only with `SKIP_MIGRATION=true`.
 2. **Never** `docker compose up` / restore against production or legacy volumes (`remnawave-db-data`, `remnabot1_postgres_data`, `bot-remnawave_postgres_data`, `bot-remnawave_*`, admin/staging fossils). Rehearsal uses only `rehearsal_*` / `cutover_*`.
 3. **Never** start the production-token bot until the old production bot is stopped (M8).
 4. **Never** apply remnabot1 live-graph `0088–0110` to a remnabot-lineage `0103` database.
@@ -636,7 +636,7 @@ Weights: 1,2,3,5,8,13,21. Batches: NORMAL 8–13, HIGH-RISK 3–8, 21 standalone
 
 # M0 — Governance, topology, upstream baseline
 
-**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. M1-T4 cancelled. Do not execute M4-T6 until the user confirms. Session contract applies.
+**Status 2026-09-01:** **M0–M3 complete.** **M4-T0 PASS.** **M4-T1 DONE.** **M4-T2 DONE.** **M4-T3 DONE** (G1 `0111`). **M4-T4 DONE**. **M4-T5 DONE**. **M4-T6 DONE** (G6). M1-T4 cancelled. Do not execute M4-T7 until the user confirms. Session contract applies.
 
 ### Task M0-T0: Codify workspace governance — DONE
 
@@ -1109,8 +1109,15 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 ### M4-T6: Backfill (stable-key; verify remnabot1 script)
 
-- **WEIGHT:** 13 · **DEPENDENCIES:** M4-T5, M3-ID
-- Use remnabot1 `remnawave_identity_backfill` **only if** M3-ID match keys match the script. Otherwise rewrite the match order. Dry-run default, `--apply`, coverage report, idempotent, non-destructive. Low coverage blocks cutover. The 4.2 module also imports `GraceAccessSessionModel` — do not treat that import as a reason to create grace tables unless M4-T1 proved a boot dependency.
+- **WEIGHT:** 13 · **DEPENDENCIES:** M4-T5, M3-ID · **STATUS:** **DONE** 2026-09-01
+- Use remnabot1 `remnawave_identity_backfill` **only if** M3-ID match keys match the script. Otherwise rewrite the match order. Dry-run default, `--apply`, coverage report, idempotent, non-destructive. Low coverage blocks cutover. The 4.2 module also imports `GraceAccessSessionModel` — do not treat that import as a reason to create grace tables unless M4-T1 proved a boot dependency. Evidence: `docs/superpowers/evidence/2026-09-01-m4-t6-backfill.md`.
+- **COMMIT:** `feat(M4-T6): stable-key remnawave_id backfill (G6)`
+
+- [x] M3-ID keys MATCH script (`short_uuid` exact first); no rewrite
+- [x] Dry-run default non-destructive (`with_id` stayed 0)
+- [x] `--apply` 3170/3173; G6 3170 matches, 0 mismatches
+- [x] Idempotent re-apply `applied=0`; grace table not created
+- [x] `rehearsal_bot` absent; sandbox still `0110`
 
 ### M4-T7: Port MVP custom behavior from `/opt/remnabot`
 
@@ -1312,7 +1319,7 @@ Resume from:
 
 Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` on remnabot1. Architecture A on remnabot remote is optional history only.
 
-**Do not execute M4-T6 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, and **M4-T5** are complete. Follow Session contract (one batch + Open smoke).
+**Do not execute M4-T7 until the user confirms this batch.** Checkpoints M0–M3, **M4-T0**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, and **M4-T6** are complete. Follow Session contract (one batch + Open smoke).
 
 ---
 
@@ -1323,7 +1330,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
 5. M0 checkpoint complete: T0–T6 DONE (T2 `f10ebd75`, T3 `8b70bd75`, T4 `3f798500` + tag, T5 `3926dd03`, T6 `9aa0d69a`); T7 CANCELLED.
-6. User gate now: numbered OK on M4-T5 → **M4-T6**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`).
+6. User gate now: numbered OK on M4-T6 → **M4-T7**. Session contract. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot` (DB still `0110`).
 
 ---
 
@@ -1331,11 +1338,11 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5** (`persist_identity` seam; panel `.id`) 2026-09-01.
+**Done:** M0–M3, E8, **M4-T0 PASS**, **M4-T1**, **M4-T2**, **M4-T3**, **M4-T4**, **M4-T5**, **M4-T6** (G6 backfill 3170/3173) 2026-09-01.
 
-**Not started:** M4-T6 (backfill), DNS, cutover. M1-T4 cancelled.
+**Not started:** M4-T7 (custom port), DNS, cutover. M1-T4 cancelled.
 
-**Next after user numbered OK:** **M4-T6** (stable-key backfill; dry-run default; `--apply` only inside T6). User smoke: none. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`.
+**Next after user numbered OK:** **M4-T7** (C2C / FA / Toman / wholesale from `/opt/remnabot`). User smoke: none this batch. Do not start polling `rehearsal_bot`. Do not rebuild sandbox `remnawave_bot`.
 
 P1 (C2C test chat) and P2 (Cloudflare DNS write) still UNKNOWN — they block M6 / M7, not M2. Do not guess chat IDs.
 

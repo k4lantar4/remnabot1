@@ -21,6 +21,38 @@ from app.database.crud.subscription import (
 from app.database.models import Subscription, SubscriptionStatus, User
 from app.localization.texts import Texts, get_texts
 from app.services.subscription_service import SubscriptionService
+from app.utils.photo_message import edit_or_answer_photo
+
+
+logger = structlog.get_logger(__name__)
+
+router = Router()
+
+MY_SUBS_PAGE_SIZE = 5
+
+
+def parse_my_subs_page(callback_data: str | None) -> int:
+    """1-based page from my_subscriptions / ms_pg:N callbacks."""
+    if not callback_data:
+        return 1
+    if callback_data.startswith('ms_pg:'):
+        try:
+            page = int(callback_data.split(':', 1)[1])
+        except (TypeError, ValueError, IndexError):
+            return 1
+        return max(1, page)
+    return 1
+
+
+def paginate_items(items: list, page: int, page_size: int = MY_SUBS_PAGE_SIZE) -> tuple[list, int, int]:
+    """Return (page_items, clamped_page, total_pages). Page is 1-based."""
+    total = len(items)
+    if total == 0:
+        return [], 1, 1
+    total_pages = (total + page_size - 1) // page_size
+    page = min(max(1, page), total_pages)
+    start = (page - 1) * page_size
+    return items[start : start + page_size], page, total_pages
 
 
 logger = structlog.get_logger(__name__)
@@ -79,11 +111,16 @@ def _format_subscription_line(sub, idx: int) -> str:
 
 
 def _build_subscriptions_keyboard(
-    subscriptions: list, language: str, gift_enabled: bool = False
+    subscriptions: list,
+    language: str,
+    gift_enabled: bool = False,
+    *,
+    page: int = 1,
+    total_pages: int = 1,
 ) -> types.InlineKeyboardMarkup:
     """Build inline keyboard with per-subscription management buttons."""
     buttons = []
-    for idx, sub in enumerate(subscriptions, 1):
+    for sub in subscriptions:
         tariff_name = sub.tariff.name if sub.tariff else f'Подписка #{sub.id}'
         buttons.append(
             [
@@ -94,7 +131,7 @@ def _build_subscriptions_keyboard(
             ]
         )
 
-    # "Buy another tariff" button
+    # Official extra-buy path for users who already have an active sub.
     texts = get_texts(language)
     buy_text = getattr(texts, 'MENU_BUY_SUBSCRIPTION', 'Купить ещё тариф')
     buttons.append(
@@ -111,7 +148,14 @@ def _build_subscriptions_keyboard(
                 )
             ]
         )
-    # Back button
+    if total_pages > 1:
+        nav: list[types.InlineKeyboardButton] = []
+        if page > 1:
+            nav.append(types.InlineKeyboardButton(text='⬅️', callback_data=f'ms_pg:{page - 1}'))
+        if page < total_pages:
+            nav.append(types.InlineKeyboardButton(text='➡️', callback_data=f'ms_pg:{page + 1}'))
+        if nav:
+            buttons.append(nav)
     buttons.append(
         [
             types.InlineKeyboardButton(text='◀️ Назад', callback_data='back_to_menu'),
@@ -173,6 +217,7 @@ async def show_my_subscriptions(
     texts = get_texts(db_user.language)
     gift_enabled = True
     subscriptions = await get_all_subscriptions_by_user_id(db, db_user.id)
+    page = parse_my_subs_page(callback.data)
 
     if not subscriptions:
         text = '📋 <b>Мои подписки</b>\n\nУ вас нет подписок.'
@@ -191,15 +236,23 @@ async def show_my_subscriptions(
         buttons.append([types.InlineKeyboardButton(text='◀️ Назад', callback_data='back_to_menu')])
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     else:
-        lines = ['📋 <b>Мои подписки</b>\n']
-        for idx, sub in enumerate(subscriptions, 1):
+        page_items, page, total_pages = paginate_items(subscriptions, page, MY_SUBS_PAGE_SIZE)
+        start_idx = (page - 1) * MY_SUBS_PAGE_SIZE
+        lines = [f'📋 <b>Мои подписки</b> ({page}/{total_pages})\n']
+        for idx, sub in enumerate(page_items, start_idx + 1):
             lines.append(_format_subscription_line(sub, idx))
-            lines.append('')  # empty line between subscriptions
+            lines.append('')
         text = '\n'.join(lines)
-        keyboard = _build_subscriptions_keyboard(subscriptions, db_user.language, gift_enabled=gift_enabled)
+        keyboard = _build_subscriptions_keyboard(
+            page_items,
+            db_user.language,
+            gift_enabled=gift_enabled,
+            page=page,
+            total_pages=total_pages,
+        )
 
     if callback.message:
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode='HTML')
+        await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
     await callback.answer()
 
 
@@ -252,7 +305,7 @@ async def show_subscription_detail(
     keyboard = _build_subscription_detail_keyboard(sub_id, sub=subscription)
 
     if callback.message:
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode='HTML')
+        await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
     await callback.answer()
 
 
@@ -363,9 +416,11 @@ async def handle_subscription_devices(
     )
     keyboard.append([types.InlineKeyboardButton(text='◀️ Назад', callback_data=f'sm:{sub_id}')])
 
-    await callback.message.edit_text(
+    await edit_or_answer_photo(
+        callback,
         text,
-        reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard),
+        types.InlineKeyboardMarkup(inline_keyboard=keyboard),
+        parse_mode='HTML',
     )
     await callback.answer()
 
@@ -440,7 +495,7 @@ async def handle_subscription_delete_confirm(
     )
 
     if callback.message:
-        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode='HTML')
+        await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
     await callback.answer()
 
 

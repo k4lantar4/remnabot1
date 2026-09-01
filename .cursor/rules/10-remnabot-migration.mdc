@@ -77,6 +77,7 @@ Never `git init` on cabinet. Never force-push.
 2. Never `docker compose up` / restore against production or legacy volumes (`bot-remnawave_postgres_data`, `remnawave-db-data`, etc.). Rehearsal uses only `rehearsal_*` / `cutover_*` names.
 3. Never start the production-token bot until the old production bot is stopped (M8).
 4. Never apply remnabot1 upstream live-graph `0088–0110` to a remnabot-lineage `0103` database.
+5. Never leave production Remnawave `nodes` rows in a second live panel (E8). After restoring a RW dump, empty `nodes` before leaving `rehearsal_rw` running. Do not attach a production node or copy production node keys. A live node is not required for M4. Isolated dummy only if a later named batch asks (`rw-rehearsal.rookari.com` → this host → `127.0.0.1:3100`).
 
 Set `SKIP_MIGRATION=true` on any container touching a restored DB before M4-T0.
 

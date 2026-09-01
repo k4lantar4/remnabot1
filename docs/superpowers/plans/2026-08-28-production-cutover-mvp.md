@@ -6,7 +6,7 @@
 >
 > **RC public hostname revision 2026-08-31 (operator binding):** staging is **not** the operational RC. Live bot env `/opt/remnabot1/.env` and Caddy `https://panel.rookari.com` are the RC public-URL source. Do **not** put `staging-host-*` in RC env. M1-T4 as originally written (author `staging-host-*` Caddy) is **cancelled**.
 >
-> **This file is the single authority.** Specs/errata siblings were deleted on purpose. Binding facts from Architecture A, architecture errata, plan errata E1–E7, and the governance audit are inlined below. Executors do not need deleted files.
+> **This file is the single authority.** Specs/errata siblings were deleted on purpose. Binding facts from Architecture A, architecture errata, plan errata E1–E8, and the governance audit are inlined below. Executors do not need deleted files.
 
 **Goal:** Produce a production-usable New-Version MVP: maintained bot at `/opt/remnabot1` (4.2 code + ported custom behavior) + separate cabinet at `/opt/cabinet` + a **verified immutable** Remnawave 3.x revision, rehearsed on production-lineage data, cut over by DNS, with rollback to frozen 3.60/2.8.1.
 
@@ -31,6 +31,7 @@
 - G8 C2C INCOMPLETE ⇒ **MVP-VERIFIED = NO-GO**.
 - `PLAN REVISION REQUIRED: <reason>` when live state contradicts this plan. Do not silently redesign.
 - Session contract (next section) is binding: one batch, numbered smoke, no silent wait.
+- Rehearsal Remnawave must not control production nodes (E8). After a RW dump restore, `nodes` stays empty (or only an isolated dummy). Do not ask for a live node for M4.
 
 ---
 
@@ -85,19 +86,17 @@ Silent wait (no before/after, no numbered list) is a **contract failure**. Updat
 
 ## Open smoke (this batch)
 
-**Batch open:** none — M3-T2 closed. **Wait:** user numbered OK → **M4-T0**.  
-**User smoke:** none (PG stay-on-17; live Caddy unchanged).  
-**Last closed:** M3-T2 (`docs/superpowers/evidence/smoke-2026-09-01-m3-t2.md`).
+**Batch open:** none — E8 closed. **Wait:** user numbered OK → **M4-T0**.  
+**User smoke:** none (nodes emptied by operator; no dummy node requested).  
+**Last closed:** E8 (`docs/superpowers/evidence/smoke-2026-09-01-e8-nodes.md`).
 
 | # | Layer | Path / command | Expect | Before | Status |
 |---|---|---|---|---|---|
-| 1 | Agent | `SHOW server_version` on `rehearsal_rw_db` | PostgreSQL 17.6; image M2-T0 digest | candidate already on 17 | **PASS** 17.6 |
-| 2 | Agent | `rehearsal_rw` health + `/health` | 3.4.3 healthy; DB up | G3 | **PASS** |
-| 3 | Agent | G3 spot counts | users 3181; `id` bigint | none | **PASS** |
-| 4 | Agent | sandbox `remnawave-db` | still 18.4 / `remnawave-db-data` | E4 | **PASS** |
-| 5 | Agent | No PG 18 retarget in rehearsal compose | still `postgres:17.6@sha256:00bc8661…` | none | **PASS** |
+| 1 | Agent | `SELECT count(*) FROM nodes` | 0 | production rows restored | **PASS** 0 |
+| 2 | Agent | users / hosts / panel health | 3181 / 50 / `/health` 200 | G3 | **PASS** |
+| 3 | Agent | rehearsal bind | `127.0.0.1:3100` only | none | **PASS** |
 
-Wait after this batch: user numbered OK → **M4-T0** (graft remnabot Alembic `0088–0104`). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB until M4-T0 PASS.
+Wait after this batch: user numbered OK → **M4-T0** (graft remnabot Alembic `0088–0104`). Do not start `rehearsal_bot`. Do not alembic-upgrade bot DB until M4-T0 PASS. Do not attach a production or dummy node unless a later batch names it.
 
 ---
 
@@ -247,7 +246,7 @@ Architecture A (`70476c0e`, 737 lines on remnabot remote `origin/chore/mcp-dev-t
 
 ---
 
-## Plan errata E1–E7 (inlined; sibling file deleted)
+## Plan errata E1–E8 (inlined; sibling file deleted)
 
 ### E1. Host-scoped volume forbidden lists
 
@@ -306,6 +305,19 @@ Governance started on `prod-cutover` @ `a168a817` (2026-08-29): rule `10-remnabo
 ### E7. Alembic fallback trigger
 
 If M4-T0 graft verification fails after good-faith archive+copy: `PLAN REVISION REQUIRED: Alembic graft failed M4-T0`. Fallback = re-ID from production `0103` only (additive `0111+`). Do not boot remnabot1 on restored data until a graph strategy passes M4-T0 gates.
+
+### E8. Rehearsal must not control production nodes (2026-09-01)
+
+**Incident:** Restoring the production Remnawave dump into `rehearsal_rw` copied live `nodes` rows. The 3.4.3 panel **actively** connects to `nodes.address` (node agent) and pushes config (`NodeHealthCheckTask` restarts nodes on boot; `StartAllNodesByProfile`; plugin sync). Two panels with the same node rows dual-control production agents and can take nodes down. M2-T2’s note that node errors mean “unreachable / not a G2 failure” was incomplete — the copy was reachable enough to interfere.
+
+**Operator mitigation (accepted):** emptied `nodes`. VERIFIED 2026-09-01: `nodes=0`, `hosts_to_nodes=0`, `config_profile_inbounds_to_nodes=0`; `users=3181`; `hosts=50` (subscription YAML public hostnames — not the control plane); panel still healthy. Evidence: `docs/superpowers/evidence/2026-09-01-e8-nodes-isolation.md`.
+
+**Binding:**
+- After any RW dump restore, `nodes` must be empty (or contain only an isolated dummy created in this panel) **before** the rehearsal backend is left running.
+- Never copy production node addresses, ports, or keys into a second live panel.
+- `hosts` may keep restored public hostnames; emptying `hosts` is **not** required for dual-control stop.
+- A live Xray node is **not** required for M4 (Alembic/client/`0111`/backfill) or for panel HTTP API purchase/renew/identity. G3 already proved `/api/sub/{shortUuid}` YAML without node connectivity.
+- Optional isolated dummy node is deferred. Do not create DNS or attach a node unless a later named batch asks. If asked: new record **`rw-rehearsal.rookari.com`** A → `91.107.144.95`, Caddy → `127.0.0.1:3100`, new node + key from **this** panel only. Rehearsal panel is **not** published on `rw.rookari.com` (`PANEL_DOMAIN` is the SPA Host header only; bind is `127.0.0.1:3100` / `:3101`).
 
 ---
 
@@ -552,6 +564,7 @@ Refactor **now** only if it directly reduces: migration risk, duplicated compati
 2. **Never** `docker compose up` / restore against production or legacy volumes (`remnawave-db-data`, `remnabot1_postgres_data`, `bot-remnawave_postgres_data`, `bot-remnawave_*`, admin/staging fossils). Rehearsal uses only `rehearsal_*` / `cutover_*`.
 3. **Never** start the production-token bot until the old production bot is stopped (M8).
 4. **Never** apply remnabot1 live-graph `0088–0110` to a remnabot-lineage `0103` database.
+5. **Never** leave production Remnawave `nodes` rows in a second live panel (E8). Rehearsal `nodes` stays empty unless an isolated dummy is explicitly added.
 
 The existing RC `remnabot1` compose project (running `remnabot1-bot` against `remnabot1_postgres_data`) is the **dev sandbox**. Do not restore dumps onto it. Do not treat it as rehearsal.
 
@@ -952,6 +965,7 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 - [x] Boot pinned 2.8.1; `/health` 200; login SPA 200 via `X-Forwarded-Proto: https` on `127.0.0.1:3100` (live Caddy unchanged; no class-D login)
 - [x] Sandbox `remnawave-db-data` / `backend:3` untouched; `rehearsal_bot` absent
 - [x] Evidence committed
+- **Correction 2026-09-01 (E8):** restored `nodes` were **not** safely unreachable; they dual-controlled production. Operator emptied `nodes`. Do not restore that table into a live second panel again.
 
 ---
 
@@ -1125,7 +1139,7 @@ Infra-heavy. Default **User smoke: none**. Each task must list Agent smoke in Op
 
 - **ID:** M6-T5 · **WEIGHT:** 8 · **RISK:** High · **DEPENDENCIES:** M6-T1..T4 (**G8 PASS required**), M4-T6, Checkpoint M3-ID
 - **FILES:** `docs/superpowers/evidence/2026-08-31-rc-e2e-smoke.md`.
-- Rehearsal bot (test token) on the `0111`+backfilled copy talking to the **rehearsal-passed candidate digest**: subscription purchase/renew; panel-user read/update **by numeric id** (or whatever M3-ID proved); sub link on `config.rookari.com` (live RW `SUB_PUBLIC_DOMAIN`); cabinet login on `https://panel.rookari.com`; FA+Toman+wholesale; C2C (G8 PASS). Do not use `staging-host-*` as the smoke URLs.
+- Rehearsal bot (test token) on the `0111`+backfilled copy talking to the **rehearsal-passed candidate digest**: subscription purchase/renew; panel-user read/update **by numeric id** (or whatever M3-ID proved); sub link on `config.rookari.com` (live RW `SUB_PUBLIC_DOMAIN`); cabinet login on `https://panel.rookari.com`; FA+Toman+wholesale; C2C (G8 PASS). Do not use `staging-host-*` as the smoke URLs. Live VPN through a node is **not** part of this gate (E8: `nodes` empty unless a later batch adds an isolated dummy).
 - **FAILURE:** any protected-behavior regression, or **G8 not PASS** → **MVP-VERIFIED = NO-GO**; block cutover.
 - **CHECKPOINT:** **Checkpoint MVP-VERIFIED** (requires G8 PASS).
 
@@ -1263,7 +1277,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 ## Self-review (2026-08-31)
 
-1. Spec coverage: topology inversion, Alembic graft, two-track RW, bot PG digest, volume forbid lists, cutover safety (DNS/Telegram/C2C/rollback/gates/env A–E), E1–E7, M0 honest status, M1+ user gate — each has a section or task.
+1. Spec coverage: topology inversion, Alembic graft, two-track RW, bot PG digest, volume forbid lists, cutover safety (DNS/Telegram/C2C/rollback/gates/env A–E), E1–E8, M0 honest status, M1+ user gate — each has a section or task.
 2. Placeholder scan: no TBD / “implement later” / “similar to Task N”. Deleted-spec recovery task cancelled with an inlined replacement.
 3. Type consistency: graft archive path, `0111` `down_revision='0104'`, volume names `rehearsal_*`/`cutover_*`, identities 1–6, cabinet `/opt/cabinet` — used the same way in later milestones.
 4. No required path to `specs/2026-08-*` or `*-errata.md`.
@@ -1276,7 +1290,7 @@ Do **not** look for deleted `docs/superpowers/specs/2026-08-*` or `*-errata.md` 
 
 Plan updated and saved to `docs/superpowers/plans/2026-08-28-production-cutover-mvp.md`.
 
-**Done:** M0, M1, M2 (G1/G2), **M3 complete** (T0 `CANDIDATE_TAG=3.4.3`; T1 G3 PASS `3.4.3@sha256:4ea85b2f…84515422`; ID; T2 stay on PG **17.6**) 2026-09-01.
+**Done:** M0, M1, M2 (G1/G2), **M3 complete**, **E8** (rehearsal `nodes` emptied; no dummy node for M4) 2026-09-01.
 
 **Not started:** Alembic graft (**M4-T0**), DNS, cutover. M1-T4 cancelled.
 

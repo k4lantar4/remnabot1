@@ -15,6 +15,8 @@
 #   remnawave/backend:3.4.3
 #     sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422
 # Stay on PG 17.6 (M3-T2). Do not use :3, :latest, or official compose postgres:18.4.
+# E8: restored production `nodes` dual-control live agents. Keep `nodes` empty
+# (or only an isolated dummy). Panel bind is 127.0.0.1:3100 — not rw.rookari.com.
 
 name: rehearsal
 

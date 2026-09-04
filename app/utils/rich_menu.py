@@ -51,6 +51,7 @@ from app.utils.miniapp_buttons import build_miniapp_startapp_url
 from app.utils.promo_offer import build_promo_offer_hint, build_test_access_hint
 from app.utils.rich_buttons import render_keyboard_as_rich_html
 from app.utils.subscription_utils import get_happ_cryptolink_redirect_link
+from app.utils.jalali_datetime import format_user_datetime
 from app.utils.timezone import format_local_datetime
 from app.utils.validators import sanitize_html
 
@@ -401,7 +402,17 @@ def _build_subscriptions_table(subscriptions, texts) -> str:
         status_label = _rich_status_label(texts, actual_status, bool(getattr(subscription, 'is_trial', False)))
 
         end_date = getattr(subscription, 'end_date', None)
-        end_date_text = format_local_datetime(end_date, '%d.%m.%Y') if end_date else ''
+        if end_date:
+            try:
+                end_date_text = format_user_datetime(
+                    end_date,
+                    language=getattr(texts, 'language', 'ru'),
+                    fmt='%d.%m.%Y',
+                )
+            except Exception:
+                end_date_text = format_local_datetime(end_date, '%d.%m.%Y')
+        else:
+            end_date_text = ''
         if end_date and end_date > current_time and actual_status in {'active', 'trial', 'limited'}:
             days_left = (end_date - current_time).days
             days_text = texts.t('MAIN_MENU_RICH_DAYS_LEFT', 'осталось {days} дн.').replace('{days}', str(days_left))

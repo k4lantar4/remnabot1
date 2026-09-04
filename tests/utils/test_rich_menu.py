@@ -638,6 +638,17 @@ async def test_try_edit_photo_delete_failure_falls_back_to_classic(monkeypatch):
     assert rich_menu.is_rich_menu_enabled() is True
 
 
+def test_subscriptions_table_fa_fallback_is_jalali():
+    class FaTexts(DummyTexts):
+        language = 'fa'
+
+    now = datetime(2026, 7, 9, 12, 0, tzinfo=UTC)
+    sub = _make_subscription(now, tariff_name='Plan-A')
+    sub.end_date = datetime(2026, 7, 9, tzinfo=UTC)
+    html_out = rich_menu._build_subscriptions_table([sub], FaTexts())
+    assert '18.04.1405' in html_out
+
+
 async def test_multi_tariff_table_is_fully_localized(monkeypatch):
     """Все строки таблицы идут через texts.t — маркер-стаб не должен оставить
     захардкоженной кириллицы (кроме fallback-даты в tg-time)."""

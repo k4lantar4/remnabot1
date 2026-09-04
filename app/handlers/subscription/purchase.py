@@ -122,6 +122,7 @@ from app.utils.subscription_utils import (
     get_display_subscription_link,
     resolve_simple_subscription_device_limit,
 )
+from app.utils.jalali_datetime import format_user_datetime
 from app.utils.timezone import format_local_datetime
 
 from .autopay import (
@@ -560,7 +561,9 @@ async def show_subscription_info(callback: types.CallbackQuery, db_user: User, d
                 bar = '▰' * filled + '▱' * (bar_length - filled)
 
                 # Форматируем дату истечения
-                expire_date = purchase.expires_at.strftime('%d.%m.%Y')
+                expire_date = format_user_datetime(
+                    purchase.expires_at, language=db_user.language, fmt='%d.%m.%Y'
+                )
 
                 # Формируем текст о времени
                 if days_remaining == 0:

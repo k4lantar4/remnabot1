@@ -21,6 +21,7 @@ class DummyTexts:
             'MY_SUB_STATUS_EXPIRED': ' (منقضی)',
             'MY_SUB_STATUS_DISABLED': ' (غیرفعال)',
             'MY_SUB_STATUS_LIMITED': ' (اتمام حجم)',
+            'MY_SUB_STATUS_USER_DISABLED': ' (متوقف)',
         }.get(key, default or key)
 
 
@@ -67,3 +68,16 @@ def test_search_matches_serial_and_brand() -> None:
     assert len(hit) == 1
     hit2 = filter_subscriptions_by_query(subs, 'moonvpn', DummyTexts(), user)
     assert {s.remnawave_short_id for s in hit2} == {'67258', '1159'}
+
+
+def test_line_marks_user_disabled_pause() -> None:
+    user = SimpleNamespace(is_partner=False, panel_brand_prefix=None)
+    line = format_subscription_list_line(
+        _sub(actual_status='disabled', user_disabled=True),
+        1,
+        DummyTexts(),
+        'fa',
+        user,
+    )
+    assert '⏸' in line
+    assert 'متوقف' in line

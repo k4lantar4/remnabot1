@@ -154,6 +154,15 @@ def test_detail_keyboard_shows_enable_when_user_disabled() -> None:
     assert 'sub_disable:42' not in callbacks
 
 
+def test_pause_uses_confirm_then_execute() -> None:
+    src = Path('app/handlers/subscription/my_subscriptions.py').read_text(encoding='utf-8')
+    assert 'sub_disable_yes:' in src
+    assert 'MY_SUB_DISABLE_CONFIRM' in src
+    assert 'handle_subscription_user_disable_execute' in src
+    purchase = Path('app/handlers/subscription/purchase.py').read_text(encoding='utf-8')
+    assert "startswith('sub_disable_yes:')" in purchase
+
+
 async def test_receive_my_subs_search_escapes_query_and_rerenders() -> None:
     message = SimpleNamespace(
         text='<script>alert(1)</script>',

@@ -6,6 +6,8 @@ from app.utils.jalali_datetime import format_user_datetime
 
 
 def _status_emoji(sub: Any) -> str:
+    if bool(getattr(sub, 'user_disabled', False)):
+        return '⏸'
     actual = getattr(sub, 'actual_status', None)
     if actual in ('active', 'trial'):
         return '🟢'
@@ -15,6 +17,8 @@ def _status_emoji(sub: Any) -> str:
 
 
 def _status_label(sub: Any, texts: Any) -> str:
+    if bool(getattr(sub, 'user_disabled', False)):
+        return texts.t('MY_SUB_STATUS_USER_DISABLED', ' (خاموش شده)')
     actual = getattr(sub, 'actual_status', None)
     if actual == 'expired':
         return texts.t('MY_SUB_STATUS_EXPIRED', ' (Истекла)')

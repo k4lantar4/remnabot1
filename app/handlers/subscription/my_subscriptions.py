@@ -389,23 +389,25 @@ async def receive_my_subs_search(
     await show_my_subscriptions(fake_callback, db_user, db, state)
 
 
-async def show_subscription_detail(
+async def _render_subscription_detail(
     callback: types.CallbackQuery,
     db_user: User,
     db: AsyncSession,
     state: FSMContext,
+    sub_id: int,
+    *,
+    answer: bool = True,
 ) -> None:
-    """Show detail view for a single subscription (IDOR protected)."""
-    parts = callback.data.split(':')
-    if len(parts) < 2:
-        await callback.answer('Неверный формат', show_alert=True)
-        return
-
-    sub_id = int(parts[1])
+    """Render detail for an owned subscription id (IDOR protected)."""
+    # Drop identity-map stale flags after pause/resume commits.
+    db.expire_all()
     subscription = await get_subscription_by_id_for_user(db, sub_id, db_user.id)
 
     if not subscription:
-        await callback.answer('Подписка не найдена', show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'),
+            show_alert=True,
+        )
         return
 
     # Persist active sub_id so downstream handlers without sub_id in callback_data
@@ -444,8 +446,32 @@ async def show_subscription_detail(
 
     if callback.message:
         await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
-    await callback.answer()
+    if answer:
+        try:
+            await callback.answer()
+        except Exception:
+            pass
 
+
+async def show_subscription_detail(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """Show detail view for a single subscription (IDOR protected)."""
+    parts = (callback.data or '').split(':')
+    if len(parts) < 2:
+        await callback.answer('Неверный формат', show_alert=True)
+        return
+
+    try:
+        sub_id = int(parts[1])
+    except (TypeError, ValueError):
+        await callback.answer('Неверный формат', show_alert=True)
+        return
+
+    await _render_subscription_detail(callback, db_user, db, state, sub_id, answer=True)
 
 async def _resolve_and_store_sub(
     callback: types.CallbackQuery,
@@ -763,6 +789,60 @@ async def handle_subscription_user_disable(
     db: AsyncSession,
     state: FSMContext,
 ) -> None:
+    """Confirm step before pausing (production pattern)."""
+    texts = get_texts(db_user.language)
+    sub_id = _extract_sub_id(callback)
+    if sub_id is None:
+        await callback.answer(texts.t('CB_INVALID_FORMAT', 'Неверный формат'), show_alert=True)
+        return
+
+    subscription = await get_subscription_by_id_for_user(db, sub_id, db_user.id)
+    if not subscription:
+        await callback.answer(texts.t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'), show_alert=True)
+        return
+
+    if subscription.actual_status not in ('active', 'trial', 'limited'):
+        await callback.answer(
+            texts.t('MY_SUB_DISABLE_NOT_ACTIVE', 'Отключить можно только активную подписку'),
+            show_alert=True,
+        )
+        return
+
+    display_name = subscription_list_identity(subscription, db_user, texts)
+    text = texts.t(
+        'MY_SUB_DISABLE_CONFIRM',
+        '⏸ <b>اشتراک «{name}» متوقف شود؟</b>\n\n'
+        'دسترسی VPN قطع می‌شود. هر زمان با «روشن کردن اشتراک» دوباره فعال می‌شود — بدون تمدید.',
+    ).format(name=html.escape(display_name))
+
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('MY_SUB_BTN_DISABLE_YES', '⏸ بله، متوقف کن'),
+                    callback_data=f'sub_disable_yes:{sub_id}',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('MY_SUB_BTN_BACK_TO_LIST', '◀️'),
+                    callback_data=f'sm:{sub_id}',
+                )
+            ],
+        ]
+    )
+
+    await callback.answer()
+    if callback.message:
+        await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
+
+
+async def handle_subscription_user_disable_execute(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
     texts = get_texts(db_user.language)
     sub_id = _extract_sub_id(callback)
     if sub_id is None:
@@ -785,8 +865,11 @@ async def handle_subscription_user_disable(
         await callback.answer(texts.t(error_key, error_default), show_alert=True)
         return
 
-    await callback.answer()
-    await show_subscription_detail(callback, db_user, db, state)
+    try:
+        await callback.answer(texts.t('MY_SUB_DISABLE_SUCCESS', '⏸ اشتراک متوقف شد'))
+    except Exception:
+        pass
+    await _render_subscription_detail(callback, db_user, db, state, sub_id, answer=False)
 
 
 async def handle_subscription_user_enable(
@@ -825,5 +908,8 @@ async def handle_subscription_user_enable(
         await callback.answer(texts.t(error_key, error_default), show_alert=True)
         return
 
-    await callback.answer()
-    await show_subscription_detail(callback, db_user, db, state)
+    try:
+        await callback.answer(texts.t('MY_SUB_ENABLE_SUCCESS', '🟢 اشتراک روشن شد'))
+    except Exception:
+        pass
+    await _render_subscription_detail(callback, db_user, db, state, sub_id, answer=False)

@@ -4113,6 +4113,7 @@ def register_handlers(dp: Dispatcher):
         handle_subscription_link,
         handle_subscription_traffic,
         handle_subscription_user_disable,
+        handle_subscription_user_disable_execute,
         handle_subscription_user_enable,
     )
 
@@ -4120,6 +4121,8 @@ def register_handlers(dp: Dispatcher):
     dp.callback_query.register(handle_subscription_extend, F.data.startswith('se:'))
     dp.callback_query.register(handle_subscription_traffic, F.data.startswith('st:'))
     dp.callback_query.register(handle_subscription_devices, F.data.startswith('sd:'))
+    # Register yes before prefix catch-all style filters (sub_disable_yes ≠ sub_disable:)
+    dp.callback_query.register(handle_subscription_user_disable_execute, F.data.startswith('sub_disable_yes:'))
     dp.callback_query.register(handle_subscription_user_disable, F.data.startswith('sub_disable:'))
     dp.callback_query.register(handle_subscription_user_enable, F.data.startswith('sub_enable:'))
     dp.callback_query.register(handle_subscription_delete_confirm, F.data.startswith('sub_del:'))

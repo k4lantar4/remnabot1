@@ -1,7 +1,7 @@
 # Cabinet user-first overlay + separate sales desk — design
 
 **Date:** 2026-09-03  
-**Status:** Design locked (operator تایید 2026-09-03). Layer A implementation plan: `docs/superpowers/plans/2026-09-03-cabinet-layer-a-user-ui.md`. Layer C is a later separate plan.  
+**Status:** Design locked (operator تایید 2026-09-03). Layer A implementation: Part B of `docs/superpowers/plans/2026-09-04-day1-telegram-overlay.md`. Layer C is a later separate plan.  
 **Does not execute:** M7-T1, M8, production DNS, cabinet/bot code  
 **Trees:** `/opt/cabinet` (1.67.0, base) · `/opt/remnabot/cabinet` (1.57.0 embed, READ-ONLY donor) · `/opt/remnabot1` (bot)
 

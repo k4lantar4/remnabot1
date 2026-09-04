@@ -5,7 +5,7 @@
 **Does not execute:** M7-T1, M8, production DNS, Layer C sales desk, application code in this document  
 **Trees:** `/opt/remnabot1` (bot 4.2.0, `prod-cutover`) · `/opt/cabinet` (1.67.0) · `/opt/remnabot` (3.60 donor, READ-ONLY)
 
-**Related:** cabinet Layer A already specified in `docs/superpowers/specs/2026-09-03-cabinet-b2-overlay-design.md` and planned in `docs/superpowers/plans/2026-09-03-cabinet-layer-a-user-ui.md`. This spec does not reopen Layer A; it adds the Telegram day-1 overlay and names the joint cutover-readiness bar.
+**Related:** cabinet Layer A is specified in `docs/superpowers/specs/2026-09-03-cabinet-b2-overlay-design.md` and implemented as Part B of `docs/superpowers/plans/2026-09-04-day1-telegram-overlay.md`. This spec names the joint cutover-readiness bar.
 
 ---
 
@@ -66,7 +66,7 @@ C2C (`app/plugins/c2c/`), FA fallback, Toman `format_price` / `format_balance`, 
 
 ### Cabinet Layer A (existing plan, `/opt/cabinet`)
 
-A1 default `fa` + first-paint RTL · A2 Jalali · A3 user wording · A4 LTR isolate · A5 subscription sheets. Plan file: `docs/superpowers/plans/2026-09-03-cabinet-layer-a-user-ui.md`.
+A1 default `fa` + first-paint RTL · A2 Jalali · A3 user wording · A4 LTR isolate · A5 subscription sheets. Implementation: Part B of `docs/superpowers/plans/2026-09-04-day1-telegram-overlay.md`.
 
 ### Telegram rich `/start` (4.2 shell stays)
 

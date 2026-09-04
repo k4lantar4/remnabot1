@@ -66,4 +66,4 @@ def test_search_matches_serial_and_brand() -> None:
     hit = filter_subscriptions_by_query(subs, '67258', DummyTexts(), user)
     assert len(hit) == 1
     hit2 = filter_subscriptions_by_query(subs, 'moonvpn', DummyTexts(), user)
-    assert {s.remnawave_short_id for s in hit2} == {'67258'}
+    assert {s.remnawave_short_id for s in hit2} == {'67258', '1159'}

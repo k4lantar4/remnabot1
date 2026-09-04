@@ -28,7 +28,7 @@ def _status_label(sub: Any, texts: Any) -> str:
 def subscription_list_identity(sub: Any, user: Any, texts: Any) -> str:
     brand = (getattr(user, 'panel_brand_prefix', None) or '').strip()
     serial = (getattr(sub, 'remnawave_short_id', '') or '').strip()
-    if getattr(user, 'is_partner', False) and brand and serial and len(serial) >= 5:
+    if getattr(user, 'is_partner', False) and brand and serial:
         return f'{brand}_{serial}'
     tariff = getattr(sub, 'tariff', None)
     if tariff and getattr(tariff, 'name', None):

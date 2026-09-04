@@ -1,6 +1,8 @@
 # Day-1 overlay Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **STATUS (2026-09-04):** **COMPLETE / PASS** — Part A Tasks 1–10 and Part B Tasks 1–6 done. Operator smoke `تایید` recorded in `docs/superpowers/evidence/smoke-2026-09-04-day1-overlay.md`. Bot HEAD `e716cb83` (+ docs `2a5e867d`); cabinet `0173edae`. **Out of this plan:** M7-T1 / DNS / Layer C — see cutover MVP named-start.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. This plan is **closed** (all steps `[x]`); do not re-open Tasks 1–10 / Part B 1–6 unless a regression is named.
 
 **Goal:** Day-1 Iran product before DNS: overlay production chrome on remnabot1 4.2 Telegram (Part A) and on cabinet 1.67 (Part B), without restoring the 3.60 start grid, copying donor handlers, or rewriting upstream Referral.
 
@@ -63,7 +65,7 @@
 - Consumes: existing `app/utils/jalali_datetime.py::format_user_datetime`
 - Produces: runtime `jdatetime` so `language='fa'` converts instead of Gregorian fallback
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `/opt/remnabot1/tests/utils/test_jalali_datetime.py`:
 
@@ -91,13 +93,13 @@ def test_ru_stays_gregorian() -> None:
     assert '09.07.2026' in out or '07' in out
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/utils/test_jalali_datetime.py::test_fa_converts_known_gregorian_anchor -v`
 
 Expected: FAIL (`ModuleNotFoundError: jdatetime` inside the helper, which then returns Gregorian — assertion `18.04.1405` fails) **or** FAIL if the helper swallows ImportError and returns a Gregorian string.
 
-- [ ] **Step 3: Add the dependency**
+- [x] **Step 3: Add the dependency**
 
 ```bash
 cd /opt/remnabot1 && uv add 'jdatetime>=5.2.0'
@@ -105,13 +107,13 @@ cd /opt/remnabot1 && uv add 'jdatetime>=5.2.0'
 
 Do not change `format_user_datetime` unless the test still fails after the package is installed.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/utils/test_jalali_datetime.py -v`
 
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pyproject.toml uv.lock tests/utils/test_jalali_datetime.py
@@ -130,7 +132,7 @@ git commit -m "feat(day1): add jdatetime so fa dates convert to Jalali"
 - Consumes: grafted tables `users.panel_brand_prefix`, `subscriptions.purchase_note`, `subscriptions.user_disabled` (Alembic `0095` / `0103` already in the remnabot lineage). `User.is_partner` already exists.
 - Produces: `User.panel_brand_prefix: str | None`, `Subscription.purchase_note: str | None`, `Subscription.user_disabled: bool`
 
-- [ ] **Step 1: Inspect DB (no migration)**
+- [x] **Step 1: Inspect DB (no migration)**
 
 If a rehearsal/RC postgres for the grafted graph is running, confirm columns exist. Do **not** autogenerate. Example (adjust container name if different):
 
@@ -148,7 +150,7 @@ WHERE column_name IN ('panel_brand_prefix', 'purchase_note', 'user_disabled');
 
 Expected: three rows. If a column is missing, **stop** with `PLAN REVISION REQUIRED: day-1 ORM column missing` — do not invent a new revision in this task.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `/opt/remnabot1/tests/database/test_day1_orm_columns.py`:
 
@@ -165,13 +167,13 @@ def test_subscription_has_purchase_note_and_user_disabled() -> None:
     assert hasattr(Subscription, 'user_disabled')
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `uv run pytest tests/database/test_day1_orm_columns.py -v`
 
 Expected: FAIL (`AttributeError` / assert on `hasattr`)
 
-- [ ] **Step 4: Write minimal implementation**
+- [x] **Step 4: Write minimal implementation**
 
 On `User`, immediately after `wholesale_discount_bps = Column(...)`:
 
@@ -188,13 +190,13 @@ On `Subscription`, immediately after the `remnawave_short_id = Column(...)` bloc
 
 `Text` is already imported in `models.py` (used elsewhere). If the import is missing, add `Text` next to the other SQLAlchemy types at the top of the file.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `uv run pytest tests/database/test_day1_orm_columns.py -v`
 
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/database/models.py tests/database/test_day1_orm_columns.py
@@ -213,7 +215,7 @@ git commit -m "feat(day1): map brand prefix, purchase note, and user_disabled on
 - Consumes: existing `load_locale` / `fa.json`
 - Produces: keys listed in the test below
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `/opt/remnabot1/tests/localization/test_day1_fa_keys.py`:
 
@@ -264,13 +266,13 @@ def test_day1_fa_keys_present_and_persian() -> None:
     assert 'کاربر' in data['MAIN_MENU_RICH_DEVICES']
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/localization/test_day1_fa_keys.py -v`
 
 Expected: FAIL (missing keys and/or still `تعرفه` / `دستگاه` on those two rich keys)
 
-- [ ] **Step 3: Merge keys into fa.json**
+- [x] **Step 3: Merge keys into fa.json**
 
 Keep JSON valid. Update existing rich keys in place:
 
@@ -309,13 +311,13 @@ Add (values must use English digits):
 "PARTNER_BRAND_TOGGLE_OFF": "🏷 برند: خاموش"
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/localization/test_day1_fa_keys.py -v`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/localization/locales/fa.json tests/localization/test_day1_fa_keys.py
@@ -337,7 +339,7 @@ git commit -m "i18n(fa): day-1 My Subscriptions, search, pause, and rich wording
   - `format_subscription_list_line(sub, idx, texts, language, user) -> str`
   - `filter_subscriptions_by_query(subscriptions, query, texts, user) -> list`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `/opt/remnabot1/tests/utils/test_subscription_list_display.py`:
 
@@ -413,13 +415,13 @@ def test_search_matches_serial_and_brand() -> None:
     assert {s.remnawave_short_id for s in hit2} == {'67258'}
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/utils/test_subscription_list_display.py -v`
 
 Expected: FAIL (`ModuleNotFoundError: subscription_list_display`)
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `/opt/remnabot1/app/utils/subscription_list_display.py`:
 
@@ -526,13 +528,13 @@ def filter_subscriptions_by_query(
     return [s for s in subscriptions if _matches(s, q, texts, user)]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/utils/test_subscription_list_display.py -v`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/utils/subscription_list_display.py tests/utils/test_subscription_list_display.py
@@ -551,7 +553,7 @@ git commit -m "feat(day1): subscription list identity, Jalali line, and search f
 - Consumes: `format_subscription_list_line`, `subscription_list_identity`, `get_texts`
 - Produces: list caption and gear buttons use helper; `_format_subscription_line` either delegates or is deleted
 
-- [ ] **Step 1: Extend pagination tests (they will fail until the handler changes)**
+- [x] **Step 1: Extend pagination tests (they will fail until the handler changes)**
 
 In `/opt/remnabot1/tests/handlers/test_my_subscriptions_pagination.py`, add a user to `_fake_sub` usage and replace caption builder + add guards. Keep existing pagination tests working by changing `_format_subscription_line` to accept optional texts/user **or** switch caption test to the helper.
 
@@ -587,13 +589,13 @@ def test_page_caption_uses_helper_and_fits() -> None:
 
 Update `test_page_caption_fits_telegram_limit` so it no longer requires the Russian title `Мои подписки`. If it still calls `_format_subscription_line(sub, idx)`, change it to the helper as above **in the same edit as the handler** if the old function signature changes.
 
-- [ ] **Step 2: Run tests to see Cyrillic guard fail**
+- [x] **Step 2: Run tests to see Cyrillic guard fail**
 
 Run: `uv run pytest tests/handlers/test_my_subscriptions_pagination.py::test_list_source_has_no_hardcoded_cyrillic -v`
 
 Expected: FAIL (`Устройства` / `Мои подписки` still in the handler)
 
-- [ ] **Step 3: Wire the handler**
+- [x] **Step 3: Wire the handler**
 
 In `my_subscriptions.py`:
 
@@ -662,11 +664,11 @@ Pass `db_user` into `_build_subscriptions_keyboard` from the empty-list branch t
 
 Do **not** add search in this task.
 
-- [ ] **Step 4: Fix pagination tests for the new keyboard signature**
+- [x] **Step 4: Fix pagination tests for the new keyboard signature**
 
 `_build_subscriptions_keyboard(..., db_user=None)` must remain valid for `test_keyboard_keeps_buy_and_does_not_dump_all_rows`.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run:
 
@@ -676,7 +678,7 @@ uv run pytest tests/handlers/test_my_subscriptions_pagination.py tests/utils/tes
 
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/handlers/subscription/my_subscriptions.py tests/handlers/test_my_subscriptions_pagination.py
@@ -697,7 +699,7 @@ git commit -m "feat(day1): overlay My Subscriptions list chrome via helper"
 - Consumes: `filter_subscriptions_by_query`; FSM key `my_subs_search_query`
 - Produces: callbacks `my_subs_search`, `my_subs_search_reset`; state `SubscriptionStates.searching_my_subscriptions`
 
-- [ ] **Step 1: Write failing keyboard test**
+- [x] **Step 1: Write failing keyboard test**
 
 Append to `test_my_subscriptions_pagination.py`:
 
@@ -717,13 +719,13 @@ def test_keyboard_includes_search_and_keeps_gift() -> None:
     assert 'subscription_gift' in callbacks
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/handlers/test_my_subscriptions_pagination.py::test_keyboard_includes_search_and_keeps_gift -v`
 
 Expected: FAIL (`TypeError` unknown kwarg `show_search` or missing callback)
 
-- [ ] **Step 3: Implement search**
+- [x] **Step 3: Implement search**
 
 `states.py` — inside `SubscriptionStates`:
 
@@ -812,13 +814,13 @@ dp.message.register(receive_my_subs_search, SubscriptionStates.searching_my_subs
 
 Export the new functions from `app/handlers/subscription/__init__.py` only if that module already re-exports `show_my_subscriptions` and a test imports from there; otherwise skip.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest tests/handlers/test_my_subscriptions_pagination.py tests/utils/test_subscription_list_display.py -v`
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/states.py app/handlers/subscription/my_subscriptions.py app/handlers/subscription/purchase.py tests/handlers/test_my_subscriptions_pagination.py
@@ -838,7 +840,7 @@ git commit -m "feat(day1): My Subscriptions search overlay on 4.2 list"
 - Consumes: `format_user_datetime`; `texts.language`
 - Produces: table fallback string Jalali for `fa`; keyboard structure unchanged
 
-- [ ] **Step 1: Write failing rich-menu test**
+- [x] **Step 1: Write failing rich-menu test**
 
 In `tests/utils/test_rich_menu.py` add (reuse `_make_subscription` already in that file):
 
@@ -858,13 +860,13 @@ def test_subscriptions_table_fa_fallback_is_jalali():
 
 If `_make_subscription` forces `end_date = now + timedelta(...)`, set `end_date` after as above. If the helper name differs, use the same factory the file already uses for `_build_subscriptions_table`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/utils/test_rich_menu.py::test_subscriptions_table_fa_fallback_is_jalali -v`
 
 Expected: FAIL (Gregorian `09.07.2026` from `format_local_datetime`)
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `rich_menu.py`:
 
@@ -897,13 +899,13 @@ Use the actual local variable name for the user in that function (`db_user` or `
 
 Do **not** add 3.60 grid buttons. Do **not** change callback_data `menu_subscription` / `menu_balance`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest tests/utils/test_rich_menu.py tests/utils/test_jalali_datetime.py -v`
 
 Expected: PASS. Existing `test_build_subscriptions_table` still looks for `[MAIN_MENU_RICH_DAYS_LEFT]` with `DummyTexts.language = 'ru'`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/utils/rich_menu.py app/handlers/subscription/purchase.py tests/utils/test_rich_menu.py
@@ -931,7 +933,7 @@ git commit -m "feat(day1): Jalali fallback on rich-menu table and purchase expir
   - `extend_confirm_keyboard(buttons, user, tariff_id, period, texts) -> list`
   - `apply_partner_checkout_from_state(db, user, subscription, state_data) -> None` (no-op if not partner or fields missing)
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create `/opt/remnabot1/tests/utils/test_partner_checkout_telegram.py`:
 
@@ -968,13 +970,13 @@ def test_extend_keyboard_noop_for_non_partner() -> None:
     assert extend_confirm_keyboard(buttons, user, 1, 30, DummyTexts()) == buttons
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest tests/utils/test_partner_checkout_telegram.py -v`
 
 Expected: FAIL (import error)
 
-- [ ] **Step 3: Implement helpers**
+- [x] **Step 3: Implement helpers**
 
 `/opt/remnabot1/app/utils/remnawave_panel_identity.py`:
 
@@ -1053,7 +1055,7 @@ def extend_confirm_keyboard(buttons, user, tariff_id, period, texts) -> list:
 
 Update the unit test to pass a DummyTexts. Keep fail-open: if `panel_brand_prefix` is missing on the class, return `buttons` unchanged.
 
-- [ ] **Step 4: Hook tariff confirm**
+- [x] **Step 4: Hook tariff confirm**
 
 `get_tariff_confirm_keyboard` — add optional `db_user=None`. After building `buttons`, if `db_user` is not None:
 
@@ -1104,13 +1106,13 @@ async def apply_partner_checkout_from_state(db, user, subscription, state_data: 
 
 Do not reimplement `PricingEngine`. Do not touch cabinet forms.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `uv run pytest tests/utils/test_partner_checkout_telegram.py tests/test_tariff_insufficient_balance_keyboard.py -v`
 
 Expected: PASS (`get_tariff_confirm_keyboard` extra optional arg must not break existing tests)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/utils/remnawave_panel_identity.py app/utils/partner_checkout_telegram.py app/handlers/subscription/partner_checkout.py app/handlers/subscription/tariff_purchase.py app/handlers/subscription/purchase.py app/states.py tests/utils/test_partner_checkout_telegram.py
@@ -1131,7 +1133,7 @@ git commit -m "feat(day1): partner note and brand overlay on 4.2 tariff confirm"
 - Consumes: `Subscription.user_disabled`, `Subscription.remnawave_id` (int, 3.x), `deactivate_subscription`, `reactivate_subscription`, `SubscriptionService.disable_remnawave_user` / `enable_remnawave_user`
 - Produces: `disable_user_subscription`, `enable_user_subscription`, `SubscriptionToggleError`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create `/opt/remnabot1/tests/services/test_subscription_user_toggle.py`:
 
@@ -1182,13 +1184,13 @@ async def test_disable_sets_flag_and_calls_panel() -> None:
     deact.assert_awaited()
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest tests/services/test_subscription_user_toggle.py -v`
 
 Expected: FAIL (import error)
 
-- [ ] **Step 3: Implement service**
+- [x] **Step 3: Implement service**
 
 Port donor logic but **use numeric `subscription.remnawave_id`**, not uuid:
 
@@ -1202,7 +1204,7 @@ Match donor rules: only `active`/`trial`/`limited` can disable; enable only when
 
 Hide the button when `not hasattr(subscription, 'user_disabled')`.
 
-- [ ] **Step 4: Wire detail keyboard + handlers**
+- [x] **Step 4: Wire detail keyboard + handlers**
 
 In `_build_subscription_detail_keyboard`, after building the inactive/active rows, if `sub is not None and hasattr(sub, 'user_disabled')` and `sub.actual_status in ('active', 'trial', 'limited')`:
 
@@ -1227,13 +1229,13 @@ dp.callback_query.register(handle_subscription_user_disable, F.data.startswith('
 dp.callback_query.register(handle_subscription_user_enable, F.data.startswith('sub_enable:'))
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `uv run pytest tests/services/test_subscription_user_toggle.py tests/handlers/test_my_subscriptions_pagination.py -v`
 
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/services/subscription_user_toggle_service.py app/handlers/subscription/my_subscriptions.py app/handlers/subscription/purchase.py tests/services/test_subscription_user_toggle.py
@@ -1331,7 +1333,7 @@ Work tree: `/opt/cabinet` `prod-cutover`. Spec: `docs/superpowers/specs/2026-09-
 - Consumes: existing i18next init in `i18n.ts`
 - Produces: `DEFAULT_LNG = 'fa'`; `applyTelegramLanguage()` must not switch language when `cabinet_language` is unset (stay on `fa`)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `/opt/cabinet/src/i18n.defaults.test.ts`:
 
@@ -1356,7 +1358,7 @@ describe('cabinet default language (Layer A)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/i18n.defaults.test.ts
@@ -1364,7 +1366,7 @@ cd /opt/cabinet && npx vitest run src/i18n.defaults.test.ts
 
 Expected: FAIL (`lang="ru"` / no `DEFAULT_LNG`).
 
-- [ ] **Step 3: Minimal implementation**
+- [x] **Step 3: Minimal implementation**
 
 In `/opt/cabinet/index.html` change the opening html tag from `lang="ru"` to:
 
@@ -1439,7 +1441,7 @@ export function applyTelegramLanguage(): void {
 
 Do not remove the `getTelegramLanguageCode` import if still unused — if unused after this change, remove the import (Biome unused import).
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/i18n.defaults.test.ts
@@ -1447,7 +1449,7 @@ cd /opt/cabinet && npx vitest run src/i18n.defaults.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /opt/cabinet
@@ -1476,7 +1478,7 @@ EOF
 
 Pages that already call `toLocaleDateString(uiLocale())` (Profile, Balance, Gift, Support, Wheel, Merge, Subscription) pick up Jalali **without** a bulk rewrite once `uiLocale` changes.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `/opt/cabinet/src/utils/formatDate.test.ts`:
 
@@ -1532,7 +1534,7 @@ Add:
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/utils/formatDate.test.ts src/utils/uiLocale.test.ts
@@ -1540,7 +1542,7 @@ cd /opt/cabinet && npx vitest run src/utils/formatDate.test.ts src/utils/uiLocal
 
 Expected: FAIL (`Module not found: formatDate` and `fa-IR` !== `fa-IR-u-ca-persian-nu-latn`).
 
-- [ ] **Step 3: Minimal implementation**
+- [x] **Step 3: Minimal implementation**
 
 Create `/opt/cabinet/src/utils/formatDate.ts` (donor `/opt/remnabot/cabinet/src/utils/formatDate.ts` verbatim):
 
@@ -1612,7 +1614,7 @@ In `/opt/cabinet/src/components/subscription/SubscriptionListCard.tsx`:
 - Delete the local `function formatDate(...)`.
 - Replace `{formatDate(subscription.end_date, i18n.language)}` with `{formatUserDate(subscription.end_date, i18n.language)}`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/utils/formatDate.test.ts src/utils/uiLocale.test.ts
@@ -1620,7 +1622,7 @@ cd /opt/cabinet && npx vitest run src/utils/formatDate.test.ts src/utils/uiLocal
 
 Expected: PASS (Jalali string is `1405/04/18` on this host).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /opt/cabinet
@@ -1650,7 +1652,7 @@ EOF
 
 `TrafficUsageText.test.ts` can assert the exported function exists by rendering to a string via `react-dom/server` if available; simpler: test `formatTraffic` is used by importing the component and using `react-dom/server.renderToStaticMarkup` — check package has `react-dom`. It does.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 `/opt/cabinet/src/components/subscription/TrafficUsageText.test.ts`:
 
@@ -1686,7 +1688,7 @@ describe('url-ltr css', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/components/subscription/TrafficUsageText.test.ts src/utils/ltrIsolate.test.ts
@@ -1694,7 +1696,7 @@ cd /opt/cabinet && npx vitest run src/components/subscription/TrafficUsageText.t
 
 Expected: FAIL (module / class missing).
 
-- [ ] **Step 3: Minimal implementation**
+- [x] **Step 3: Minimal implementation**
 
 Create `/opt/cabinet/src/utils/ltrIsolate.tsx`:
 
@@ -1784,7 +1786,7 @@ In `/opt/cabinet/src/pages/Subscription.tsx`:
 
 Also wrap the list-card traffic numbers in `SubscriptionListCard.tsx` (the `${trafficUsed.toFixed(1)} / ${trafficLimit}` span) with `dir="ltr"` + `[unicode-bidi:isolate]` or `TrafficUsageText` if `usedGb` is in GB already (`trafficUsed` is fine to pass as `usedGb` if it is already GB).
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/components/subscription/TrafficUsageText.test.ts src/utils/ltrIsolate.test.ts
@@ -1792,7 +1794,7 @@ cd /opt/cabinet && npx vitest run src/components/subscription/TrafficUsageText.t
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /opt/cabinet
@@ -1818,7 +1820,7 @@ EOF
 
 User roots (prefix of dotted path): `common`, `subscription`, `dashboard`, `gift`, `balance`, `profile`, `support`, `wheel`, `merge`, `quickPurchase`, `purchase`, `traffic`, `devices`, `nav` — **exclude** any path starting with `admin.`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -1869,7 +1871,7 @@ describe('fa user terminology', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/locales/fa-user-terminology.test.ts
@@ -1877,7 +1879,7 @@ cd /opt/cabinet && npx vitest run src/locales/fa-user-terminology.test.ts
 
 Expected: FAIL with a list of paths (today ~dozens under `subscription` / `dashboard`).
 
-- [ ] **Step 3: Overlay donor values (do not replace the file)**
+- [x] **Step 3: Overlay donor values (do not replace the file)**
 
 Run this **once** from `/opt/cabinet` (script is throwaway; do not commit the script unless it is useful — prefer inline node):
 
@@ -1952,7 +1954,7 @@ If donor overlay still leaves `دستگاه` in a user root, replace remaining `
 
 Keep `admin.*` untouched.
 
-- [ ] **Step 4: Run test**
+- [x] **Step 4: Run test**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/locales/fa-user-terminology.test.ts
@@ -1961,7 +1963,7 @@ python3 -c "import json; json.load(open('/opt/cabinet/src/locales/fa.json'))"
 
 Expected: vitest PASS; JSON parses.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /opt/cabinet
@@ -1990,7 +1992,7 @@ EOF
 
 Skip `DisableSubscriptionSheet` (no `user_disabled` on 1.67 types).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -2016,7 +2018,7 @@ describe('getSubscriptionDisplayLabel', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/utils/subscriptionDisplayLabel.test.ts
@@ -2024,7 +2026,7 @@ cd /opt/cabinet && npx vitest run src/utils/subscriptionDisplayLabel.test.ts
 
 Expected: FAIL (module not found).
 
-- [ ] **Step 3: Implementation**
+- [x] **Step 3: Implementation**
 
 Create `/opt/cabinet/src/utils/subscriptionDisplayLabel.ts`:
 
@@ -2106,7 +2108,7 @@ onClick={() => {
 
 In `SubscriptionListCard.tsx`, replace the title text `subscription.tariff_name || t('subscription.defaultName', ...)` with `getSubscriptionDisplayLabel(subscription, t)`.
 
-- [ ] **Step 4: Run tests + type-check**
+- [x] **Step 4: Run tests + type-check**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/utils/subscriptionDisplayLabel.test.ts src/locales/fa-user-terminology.test.ts
@@ -2115,7 +2117,7 @@ cd /opt/cabinet && npm run type-check
 
 Expected: tests PASS; `tsc` clean. If `ConfigDeliverySheet` fails types, fix only that file.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /opt/cabinet
@@ -2131,9 +2133,11 @@ EOF
 
 ### Task 6: Agent verification + user smoke (STOP)
 
+**Status:** **PASS** — operator `تایید` 2026-09-04 (joint Day-1 smoke).
+
 **Files:** none required if Task 1–5 PASS.
 
-- [ ] **Step 1: Agent suite**
+- [x] **Step 1: Agent suite**
 
 ```bash
 cd /opt/cabinet && npx vitest run src/i18n.defaults.test.ts src/utils/formatDate.test.ts src/utils/uiLocale.test.ts src/utils/ltrIsolate.test.ts src/components/subscription/TrafficUsageText.test.ts src/locales/fa-user-terminology.test.ts src/utils/subscriptionDisplayLabel.test.ts
@@ -2143,7 +2147,7 @@ cd /opt/cabinet && npx biome check src/i18n.ts src/utils/formatDate.ts src/utils
 
 Expected: all PASS. If Biome fails, `npx biome check --write` on those files and amend **only if** the commit is yours, unpushed, and the hook modified files — otherwise a new commit `chore: biome Layer A`.
 
-- [ ] **Step 2: Recreate cabinet frontend only** (do not rebuild remnawave_bot)
+- [x] **Step 2: Recreate cabinet frontend only** (do not rebuild remnawave_bot)
 
 ```bash
 cd /opt/cabinet && docker compose -f docker-compose.yml -f docker-compose.rc.yml up -d --build cabinet_frontend
@@ -2151,7 +2155,7 @@ cd /opt/cabinet && docker compose -f docker-compose.yml -f docker-compose.rc.yml
 
 Expected: container healthy; `GET https://panel.rookari.com/` still 200.
 
-- [ ] **Step 3: User smoke (STOP — user-visible)**
+- [x] **Step 3: User smoke (STOP — user-visible)**
 
 مسیر / انتظار:
 

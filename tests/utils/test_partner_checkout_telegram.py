@@ -34,6 +34,14 @@ def test_extend_keyboard_noop_for_non_partner() -> None:
     assert extend_confirm_keyboard(buttons, user, 1, 30, DummyTexts()) == buttons
 
 
+def test_prompt_purchase_note_clears_markup() -> None:
+    from pathlib import Path
+
+    src = Path('app/handlers/subscription/partner_checkout.py').read_text()
+    assert 'reply_markup=None' in src
+    assert 'pnote_cancel:' in src
+
+
 def test_sanitize_purchase_note() -> None:
     assert sanitize_purchase_note('  hello  ') == 'hello'
     assert sanitize_purchase_note('') is None

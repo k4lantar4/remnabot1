@@ -4313,9 +4313,13 @@ def register_handlers(dp: Dispatcher):
 
     register_tariff_purchase_handlers(dp)
 
-    from app.handlers.subscription.partner_checkout import register_partner_checkout_handlers
+    from app.handlers.subscription.partner_checkout import (
+        cancel_purchase_note,
+        register_partner_checkout_handlers,
+    )
 
     register_partner_checkout_handlers(dp)
+    dp.callback_query.register(cancel_purchase_note, F.data.startswith('pnote_cancel:'))
 
     # Регистрируем обработчик для простой покупки
     dp.callback_query.register(handle_simple_subscription_purchase, F.data == 'simple_subscription_purchase')

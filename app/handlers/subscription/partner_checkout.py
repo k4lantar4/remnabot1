@@ -87,12 +87,24 @@ async def prompt_purchase_note(
         purchase_note_message_id=callback.message.message_id,
     )
     await state.set_state(SubscriptionStates.waiting_for_purchase_note)
+    cancel_keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('CANCEL', '❌ Cancel'),
+                    callback_data=f'pnote_cancel:{tariff_id}:{period}',
+                )
+            ]
+        ]
+    )
     await callback.message.edit_text(
         texts.t(
             'PARTNER_PURCHASE_NOTE_PROMPT',
             'Send a note for this purchase (max 500 characters).',
-        )
+        ),
+        reply_markup=None,
     )
+    await callback.message.edit_reply_markup(reply_markup=cancel_keyboard)
 
 
 @error_handler
@@ -111,7 +123,24 @@ async def handle_purchase_note_input(
         await state.set_state(None)
         return
 
-    await state.update_data(purchase_note=sanitize_purchase_note(message.text))
+    note = sanitize_purchase_note(message.text)
+    if note is None:
+        await state.set_state(None)
+        await _reshow_tariff_confirm(
+            db_user=db_user,
+            db=db,
+            state=state,
+            tariff_id=int(tariff_id),
+            period=int(period),
+            message=_ConfirmMessage(message.bot, int(chat_id), int(message_id)),
+        )
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        return
+
+    await state.update_data(purchase_note=note)
     await state.set_state(None)
     await _reshow_tariff_confirm(
         db_user=db_user,
@@ -125,6 +154,31 @@ async def handle_purchase_note_input(
         await message.delete()
     except Exception:
         pass
+
+
+@error_handler
+async def cancel_purchase_note(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    if not getattr(db_user, 'is_partner', False) or not hasattr(db_user, 'panel_brand_prefix'):
+        await callback.answer()
+        return
+
+    parts = callback.data.split(':')
+    tariff_id, period = int(parts[1]), int(parts[2])
+    await callback.answer()
+    await state.set_state(None)
+    await _reshow_tariff_confirm(
+        db_user=db_user,
+        db=db,
+        state=state,
+        tariff_id=tariff_id,
+        period=period,
+        message=callback.message,
+    )
 
 
 @error_handler

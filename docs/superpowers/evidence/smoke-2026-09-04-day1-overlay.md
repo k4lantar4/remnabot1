@@ -104,7 +104,7 @@ Use a private/incognito window so `cabinet_language` is unset.
 | A2.1–A2.4 | PASS | |
 | A3.1–A3.3 | PASS | |
 | A4.1 | PASS | Pause button visible |
-| A4.2 | **FAIL** | Pause enters another menu; secondary button always appears “on” and does not restore real status — likely pre-existing / daily-pause collision, not day-1 blocker for overlay chrome |
+| A4.2 | **FAIL → fixed `57b44073`** | Was: pause entered stripped menu without confirm; status refresh stale. Now: confirm → execute → detail with `user_disabled` status + enable button; list shows «متوقف». **Re-smoke A4.** |
 | A5.1–A5.2 | PASS | |
 | A5.3 | PASS (operator: “i think pass”) | Different tariff flow |
 | A6 | SKIP | |

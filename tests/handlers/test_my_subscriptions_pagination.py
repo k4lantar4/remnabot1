@@ -169,6 +169,13 @@ def test_render_detail_does_not_call_expire_all() -> None:
     assert '_render_subscription_detail' in src
 
 
+def test_list_order_keeps_user_disabled_with_active() -> None:
+    """Paused (user_disabled) rows must not sink to the expired tier."""
+    src = Path('app/database/crud/subscription.py').read_text(encoding='utf-8')
+    assert 'async def get_all_subscriptions_by_user_id' in src
+    assert 'Subscription.user_disabled.is_(True), 0)' in src
+
+
 async def test_receive_my_subs_search_escapes_query_and_rerenders() -> None:
     message = SimpleNamespace(
         text='<script>alert(1)</script>',

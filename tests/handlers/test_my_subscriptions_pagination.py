@@ -10,6 +10,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -23,6 +24,7 @@ from app.handlers.subscription.my_subscriptions import (
     _format_subscription_line,
     paginate_items,
     parse_my_subs_page,
+    receive_my_subs_search,
 )
 from app.utils.subscription_list_display import format_subscription_list_line
 
@@ -150,3 +152,32 @@ def test_detail_keyboard_shows_enable_when_user_disabled() -> None:
     callbacks = _detail_callbacks(keyboard)
     assert 'sub_enable:42' in callbacks
     assert 'sub_disable:42' not in callbacks
+
+
+async def test_receive_my_subs_search_escapes_query_and_rerenders() -> None:
+    message = SimpleNamespace(
+        text='<script>alert(1)</script>',
+        answer=AsyncMock(),
+    )
+    db_user = SimpleNamespace(id=1, language='fa', is_partner=False, panel_brand_prefix=None)
+    state = SimpleNamespace(
+        update_data=AsyncMock(),
+        set_state=AsyncMock(),
+        get_data=AsyncMock(return_value={'my_subs_search_query': '<script>alert(1)</script>'}),
+    )
+    with patch(
+        'app.handlers.subscription.my_subscriptions.show_my_subscriptions',
+        new_callable=AsyncMock,
+    ) as show_mock:
+        await receive_my_subs_search(message, db_user, AsyncMock(), state)
+
+    state.update_data.assert_awaited_once_with(my_subs_search_query='<script>alert(1)</script>')
+    state.set_state.assert_awaited_once_with(None)
+    message.answer.assert_awaited_once()
+    confirm_text = message.answer.await_args.args[0]
+    assert '&lt;script&gt;' in confirm_text
+    assert '<script>' not in confirm_text
+    show_mock.assert_awaited_once()
+    fake_callback = show_mock.await_args.args[0]
+    assert fake_callback.data == 'my_subscriptions'
+    assert fake_callback.message is message

@@ -7,6 +7,7 @@ Only active when MULTI_TARIFF_ENABLED=True.
 
 from __future__ import annotations
 
+import html
 from types import SimpleNamespace
 
 import structlog
@@ -371,7 +372,21 @@ async def receive_my_subs_search(
         return
     await state.update_data(my_subs_search_query=raw)
     await state.set_state(None)
-    await message.answer(texts.t('MY_SUB_SEARCH_ACTIVE', 'Поиск: {query}').format(query=raw))
+    safe = html.escape(raw)
+    await message.answer(
+        texts.t('MY_SUB_SEARCH_ACTIVE', 'Поиск: <b>{query}</b>').format(query=safe),
+        parse_mode='HTML',
+    )
+
+    async def _noop_answer(*_args, **_kwargs) -> None:
+        return None
+
+    fake_callback = SimpleNamespace(
+        data='my_subscriptions',
+        message=message,
+        answer=_noop_answer,
+    )
+    await show_my_subscriptions(fake_callback, db_user, db, state)
 
 
 async def show_subscription_detail(

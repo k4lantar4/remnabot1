@@ -7,11 +7,12 @@ Only active when MULTI_TARIFF_ENABLED=True.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import structlog
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from types import SimpleNamespace
 
 from app.config import settings
 from app.database.crud.subscription import (
@@ -22,9 +23,14 @@ from app.database.crud.subscription import (
 from app.database.models import Subscription, SubscriptionStatus, User
 from app.localization.texts import Texts, get_texts
 from app.services.subscription_service import SubscriptionService
+from app.services.subscription_user_toggle_service import (
+    SubscriptionToggleError,
+    disable_user_subscription,
+    enable_user_subscription,
+)
+from app.states import SubscriptionStates
 from app.utils.jalali_datetime import format_user_datetime
 from app.utils.photo_message import edit_or_answer_photo
-from app.states import SubscriptionStates
 from app.utils.subscription_list_display import (
     filter_subscriptions_by_query,
     format_subscription_list_line,
@@ -174,6 +180,24 @@ def _build_subscription_detail_keyboard(sub_id: int, sub=None, *, language: str 
     connection link and traffic/device management are irrelevant.
     """
     texts = get_texts(language)
+    if sub is not None and hasattr(sub, 'user_disabled') and getattr(sub, 'user_disabled', False):
+        return types.InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('MY_SUB_BTN_ENABLE', '🟢'),
+                        callback_data=f'sub_enable:{sub_id}',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('MY_SUB_BTN_BACK_TO_LIST'),
+                        callback_data='my_subscriptions',
+                    )
+                ],
+            ]
+        )
+
     is_inactive = sub is not None and sub.actual_status in ('expired', 'disabled')
 
     buttons = []
@@ -203,6 +227,21 @@ def _build_subscription_detail_keyboard(sub_id: int, sub=None, *, language: str 
                 types.InlineKeyboardButton(
                     text=texts.t('MY_SUB_BTN_REISSUE'),
                     callback_data=f'sr:{sub_id}',
+                )
+            ]
+        )
+
+    if (
+        sub is not None
+        and hasattr(sub, 'user_disabled')
+        and sub.actual_status in ('active', 'trial', 'limited')
+        and not getattr(sub, 'user_disabled', False)
+    ):
+        buttons.append(
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('MY_SUB_BTN_DISABLE', '⏸'),
+                    callback_data=f'sub_disable:{sub_id}',
                 )
             ]
         )
@@ -701,3 +740,79 @@ def _extract_sub_id(callback: types.CallbackQuery) -> int | None:
         except (ValueError, TypeError):
             return None
     return None
+
+
+async def handle_subscription_user_disable(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    texts = get_texts(db_user.language)
+    sub_id = _extract_sub_id(callback)
+    if sub_id is None:
+        await callback.answer(texts.t('CB_INVALID_FORMAT', 'Неверный формат'), show_alert=True)
+        return
+
+    subscription = await get_subscription_by_id_for_user(db, sub_id, db_user.id)
+    if not subscription:
+        await callback.answer(texts.t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'), show_alert=True)
+        return
+
+    try:
+        await callback.answer()
+    except Exception:
+        pass
+
+    try:
+        await disable_user_subscription(db, subscription, db_user)
+    except SubscriptionToggleError as exc:
+        error_key = 'MY_SUB_DISABLE_PANEL_ERROR' if exc.code == 'panel_error' else 'MY_SUB_DISABLE_NOT_ACTIVE'
+        error_default = '❌ Failed to disable VPN on panel' if exc.code == 'panel_error' else exc.message
+        try:
+            await callback.answer(texts.t(error_key, error_default), show_alert=True)
+        except Exception:
+            pass
+        return
+
+    await show_subscription_detail(callback, db_user, db, state)
+
+
+async def handle_subscription_user_enable(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    texts = get_texts(db_user.language)
+    sub_id = _extract_sub_id(callback)
+    if sub_id is None:
+        await callback.answer(texts.t('CB_INVALID_FORMAT', 'Неверный формат'), show_alert=True)
+        return
+
+    subscription = await get_subscription_by_id_for_user(db, sub_id, db_user.id)
+    if not subscription:
+        await callback.answer(texts.t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'), show_alert=True)
+        return
+
+    try:
+        await callback.answer()
+    except Exception:
+        pass
+
+    try:
+        await enable_user_subscription(db, subscription, db_user)
+    except SubscriptionToggleError as exc:
+        if exc.code == 'panel_error':
+            msg = texts.t('MY_SUB_ENABLE_PANEL_ERROR', '❌ Failed to enable VPN on panel')
+        elif exc.code == 'expired':
+            msg = texts.t('MY_SUB_ENABLE_EXPIRED', 'Subscription expired — renew instead')
+        else:
+            msg = exc.message
+        try:
+            await callback.answer(msg, show_alert=True)
+        except Exception:
+            pass
+        return
+
+    await show_subscription_detail(callback, db_user, db, state)

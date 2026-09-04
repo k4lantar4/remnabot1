@@ -18,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from app.handlers.subscription.my_subscriptions import (
     MY_SUBS_PAGE_SIZE,
+    _build_subscription_detail_keyboard,
     _build_subscriptions_keyboard,
     _format_subscription_line,
     paginate_items,
@@ -129,3 +130,23 @@ def test_keyboard_includes_search_and_keeps_gift() -> None:
     callbacks = [b.callback_data for row in keyboard.inline_keyboard for b in row]
     assert 'my_subs_search' in callbacks
     assert 'subscription_gift' in callbacks
+
+
+def _detail_callbacks(keyboard) -> list[str]:
+    return [button.callback_data for row in keyboard.inline_keyboard for button in row]
+
+
+def test_detail_keyboard_shows_disable_when_active() -> None:
+    sub = SimpleNamespace(actual_status='active', user_disabled=False)
+    keyboard = _build_subscription_detail_keyboard(sub_id=42, sub=sub)
+    callbacks = _detail_callbacks(keyboard)
+    assert 'sub_disable:42' in callbacks
+    assert 'sub_enable:42' not in callbacks
+
+
+def test_detail_keyboard_shows_enable_when_user_disabled() -> None:
+    sub = SimpleNamespace(actual_status='disabled', user_disabled=True)
+    keyboard = _build_subscription_detail_keyboard(sub_id=42, sub=sub)
+    callbacks = _detail_callbacks(keyboard)
+    assert 'sub_enable:42' in callbacks
+    assert 'sub_disable:42' not in callbacks

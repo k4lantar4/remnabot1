@@ -33,6 +33,11 @@ def _panel_id(subscription: Subscription) -> int | None:
     return panel_id or None
 
 
+async def _raise_panel_error(db: AsyncSession, message: str) -> None:
+    await db.rollback()
+    raise SubscriptionToggleError('panel_error', message)
+
+
 async def disable_user_subscription(
     db: AsyncSession,
     subscription: Subscription,
@@ -42,6 +47,14 @@ async def disable_user_subscription(
     if actual not in ('active', 'trial', 'limited'):
         raise SubscriptionToggleError('not_active', 'Only active subscriptions can be disabled')
 
+    panel_id = _panel_id(subscription)
+    if not panel_id:
+        await _raise_panel_error(db, 'Failed to disable VPN access on panel')
+
+    ok = await SubscriptionService().disable_remnawave_user(int(panel_id), db=db)
+    if not ok:
+        await _raise_panel_error(db, 'Failed to disable VPN access on panel')
+
     now = datetime.now(UTC)
     subscription.last_webhook_update_at = now
     subscription.user_disabled = True
@@ -49,12 +62,6 @@ async def disable_user_subscription(
 
     if subscription.is_daily_tariff:
         subscription.is_daily_paused = True
-
-    panel_id = _panel_id(subscription)
-    if panel_id:
-        ok = await SubscriptionService().disable_remnawave_user(int(panel_id), db=db)
-        if not ok:
-            raise SubscriptionToggleError('panel_error', 'Failed to disable VPN access on panel')
 
     await db.commit()
     await db.refresh(subscription)
@@ -79,13 +86,6 @@ async def enable_user_subscription(
     if not subscription.end_date or subscription.end_date <= now:
         raise SubscriptionToggleError('expired', 'Subscription has expired; renew instead')
 
-    subscription.last_webhook_update_at = now
-    subscription.user_disabled = False
-    await reactivate_subscription(db, subscription, commit=False)
-
-    if subscription.is_daily_tariff:
-        subscription.is_daily_paused = False
-
     service = SubscriptionService()
     panel_id = _panel_id(subscription)
     panel_ok = False
@@ -95,7 +95,14 @@ async def enable_user_subscription(
         result = await service.create_remnawave_user(db, subscription, reset_traffic=False)
         panel_ok = bool(result)
     if not panel_ok:
-        raise SubscriptionToggleError('panel_error', 'Failed to enable VPN access on panel')
+        await _raise_panel_error(db, 'Failed to enable VPN access on panel')
+
+    subscription.last_webhook_update_at = now
+    subscription.user_disabled = False
+    await reactivate_subscription(db, subscription, commit=False)
+
+    if subscription.is_daily_tariff:
+        subscription.is_daily_paused = False
 
     await db.commit()
     await db.refresh(subscription)

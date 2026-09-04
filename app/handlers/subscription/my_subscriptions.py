@@ -760,21 +760,17 @@ async def handle_subscription_user_disable(
         return
 
     try:
-        await callback.answer()
-    except Exception:
-        pass
-
-    try:
         await disable_user_subscription(db, subscription, db_user)
     except SubscriptionToggleError as exc:
         error_key = 'MY_SUB_DISABLE_PANEL_ERROR' if exc.code == 'panel_error' else 'MY_SUB_DISABLE_NOT_ACTIVE'
-        error_default = '❌ Failed to disable VPN on panel' if exc.code == 'panel_error' else exc.message
-        try:
-            await callback.answer(texts.t(error_key, error_default), show_alert=True)
-        except Exception:
-            pass
+        if exc.code == 'panel_error':
+            error_default = '❌ Не удалось отключить VPN в панели'
+        else:
+            error_default = 'Отключить можно только активную подписку'
+        await callback.answer(texts.t(error_key, error_default), show_alert=True)
         return
 
+    await callback.answer()
     await show_subscription_detail(callback, db_user, db, state)
 
 
@@ -796,23 +792,23 @@ async def handle_subscription_user_enable(
         return
 
     try:
-        await callback.answer()
-    except Exception:
-        pass
-
-    try:
         await enable_user_subscription(db, subscription, db_user)
     except SubscriptionToggleError as exc:
-        if exc.code == 'panel_error':
-            msg = texts.t('MY_SUB_ENABLE_PANEL_ERROR', '❌ Failed to enable VPN on panel')
-        elif exc.code == 'expired':
-            msg = texts.t('MY_SUB_ENABLE_EXPIRED', 'Subscription expired — renew instead')
-        else:
-            msg = exc.message
-        try:
-            await callback.answer(msg, show_alert=True)
-        except Exception:
-            pass
+        enable_toasts = {
+            'panel_error': ('MY_SUB_ENABLE_PANEL_ERROR', '❌ Не удалось включить VPN в панели'),
+            'expired': ('MY_SUB_ENABLE_EXPIRED', 'Подписка истекла — продлите её'),
+            'not_user_disabled': (
+                'MY_SUB_ENABLE_NOT_USER_DISABLED',
+                'Подписка не была отключена пользователем',
+            ),
+            'not_disabled': (
+                'MY_SUB_ENABLE_NOT_DISABLED',
+                'Подписка не находится в отключённом состоянии',
+            ),
+        }
+        error_key, error_default = enable_toasts.get(exc.code, ('MY_SUB_ENABLE_PANEL_ERROR', exc.message))
+        await callback.answer(texts.t(error_key, error_default), show_alert=True)
         return
 
+    await callback.answer()
     await show_subscription_detail(callback, db_user, db, state)

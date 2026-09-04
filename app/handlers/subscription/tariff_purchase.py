@@ -321,6 +321,8 @@ def get_tariff_confirm_keyboard(
     tariff_id: int,
     period: int,
     language: str,
+    db_user: User | None = None,
+    state_data: dict | None = None,
 ) -> InlineKeyboardMarkup:
     """Создает клавиатуру подтверждения покупки тарифа."""
     texts = get_texts(language)
@@ -354,6 +356,10 @@ def get_tariff_confirm_keyboard(
             ]
         )
     buttons.append([InlineKeyboardButton(text=texts.BACK, callback_data=f'tariff_select:{tariff_id}')])
+    if db_user is not None:
+        from app.utils.partner_checkout_telegram import extend_confirm_keyboard
+
+        buttons = extend_confirm_keyboard(buttons, db_user, tariff_id, period, texts, state_data)
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -1695,7 +1701,13 @@ async def select_tariff_period(
                 balance=format_price_kopeks(user_balance),
                 after=format_price_kopeks(user_balance - final_price),
             ),
-            reply_markup=get_tariff_confirm_keyboard(tariff_id, period, db_user.language),
+            reply_markup=get_tariff_confirm_keyboard(
+                tariff_id,
+                period,
+                db_user.language,
+                db_user=db_user,
+                state_data=await state.get_data(),
+            ),
             parse_mode='HTML',
         )
     else:
@@ -2094,6 +2106,11 @@ async def confirm_tariff_purchase(
         except Exception:
             pass
         return
+
+    from app.utils.partner_checkout_telegram import apply_partner_checkout_from_state
+
+    state_data = await state.get_data()
+    await apply_partner_checkout_from_state(db, db_user, subscription, state_data)
 
     # Обновляем пользователя в Remnawave
     # При покупке тарифа ВСЕГДА сбрасываем трафик в панели

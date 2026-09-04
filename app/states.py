@@ -35,6 +35,7 @@ class SubscriptionStates(StatesGroup):
     renaming_device = State()
 
     searching_my_subscriptions = State()
+    waiting_for_purchase_note = State()
 
 
 class GiftPurchaseStates(StatesGroup):

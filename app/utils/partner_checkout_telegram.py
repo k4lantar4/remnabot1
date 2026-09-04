@@ -68,6 +68,7 @@ async def apply_partner_checkout_from_state(db, user, subscription, state_data: 
         return
     opts = checkout_partner_options(user, state_data)
     subscription.purchase_note = opts['purchase_note']
+    await db.commit()
     if opts['use_brand_prefix'] is False:
         return
     # prefix already on user; nothing else if validate would fail

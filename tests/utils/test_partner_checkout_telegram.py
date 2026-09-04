@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -64,26 +65,45 @@ def test_extend_keyboard_inserts_partner_rows() -> None:
 
 
 @pytest.mark.asyncio
-async def test_apply_partner_checkout_sets_note() -> None:
+async def test_apply_partner_checkout_sets_note_and_commits() -> None:
+    db = AsyncMock()
     user = SimpleNamespace(is_partner=True, panel_brand_prefix='Moonvpn')
     subscription = SimpleNamespace(purchase_note=None)
     await apply_partner_checkout_from_state(
-        None,
+        db,
         user,
         subscription,
         {'purchase_note': '  shop-1 ', 'use_brand_prefix': False},
     )
     assert subscription.purchase_note == 'shop-1'
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_apply_partner_checkout_commits_when_clearing_note() -> None:
+    db = AsyncMock()
+    user = SimpleNamespace(is_partner=True, panel_brand_prefix='Moonvpn')
+    subscription = SimpleNamespace(purchase_note='old')
+    await apply_partner_checkout_from_state(
+        db,
+        user,
+        subscription,
+        {'purchase_note': '', 'use_brand_prefix': True},
+    )
+    assert subscription.purchase_note is None
+    db.commit.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_apply_partner_checkout_noop_for_non_partner() -> None:
+    db = AsyncMock()
     user = SimpleNamespace(is_partner=False, panel_brand_prefix='Moonvpn')
     subscription = SimpleNamespace(purchase_note=None)
     await apply_partner_checkout_from_state(
-        None,
+        db,
         user,
         subscription,
         {'purchase_note': 'x', 'use_brand_prefix': True},
     )
     assert subscription.purchase_note is None
+    db.commit.assert_not_awaited()

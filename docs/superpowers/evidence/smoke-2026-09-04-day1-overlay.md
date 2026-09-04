@@ -2,13 +2,13 @@
 
 **Date:** 2026-09-04  
 **Scope:** Part A Telegram overlay + Part B cabinet Layer A (no M7, no Buy-button redesign)  
-**STOP:** reply `تایید` or `N FAIL: …` — do not start M7 from this smoke.
+**STOP:** do not start M7 from this smoke.
 
 ## Runtime readiness (agent-verified)
 
 | Component | Identity | Status |
 |---|---|---|
-| Bot image HEAD | remnabot1 `ea3fa12e` | — |
+| Bot image HEAD | remnabot1 `e716cb83` | — |
 | Cabinet HEAD | cabinet `0173edae` | — |
 | Telegram RC | `@mrj7_bot` (test token; polling) | `rehearsal_bot` **healthy** |
 | Cabinet RC | `https://panel.rookari.com` | `cabinet_frontend` **healthy**, HTTP **200** |
@@ -48,14 +48,13 @@ Note: background Lava/Platega cancel warnings on boot are deferred-provider nois
 | 2 | Send a query that matches one sub | Confirmation + **filtered list re-rendered** |
 | 3 | Reset search | Full list again |
 
-### A4 — Pause (optional)
+### A4 — Pause
 
 | Step | Path | Expect |
 |---|---|---|
 | 1 | Open an **active non-critical** test sub detail | Pause button visible if `user_disabled` mapped |
-| 2 | Toggle pause / resume | No crash; error toast if panel fails |
-
-Skip if no safe test subscription.
+| 2 | Confirm → pause | Confirm screen then detail with «متوقف» + enable; no crash |
+| 3 | Back to list | Paused sub stays in **active-tier order** (not last pages); searchable without needing search to find it |
 
 ### A5 — Second purchase / multi-tariff (observe)
 
@@ -104,17 +103,20 @@ Use a private/incognito window so `cabinet_language` is unset.
 | A2.1–A2.4 | PASS | |
 | A3.1–A3.3 | PASS | |
 | A4.1 | PASS | Pause button visible |
-| A4.2 | **FAIL → fixed `57b44073`** | Was: pause entered stripped menu without confirm; status refresh stale. Now: confirm → execute → detail with `user_disabled` status + enable button; list shows «متوقف». **Re-smoke A4.** |
+| A4.2 | PASS | After `57b44073` + `53a9a39f`: confirm → pause → detail/`sm:` OK |
+| A4.3 | PASS | After `e716cb83`: paused sub stays with active-tier list order (operator `تایید` 2026-09-04) |
 | A5.1–A5.2 | PASS | |
-| A5.3 | PASS (operator: “i think pass”) | Different tariff flow |
+| A5.3 | PASS | Different tariff flow |
 | A6 | SKIP | |
 | B1–B5 | PASS | |
 
-**Day-1 overlay smoke:** PASS with known defect **A4.2** (pause UX / status fidelity).  
-**Do not start M7** from this result. A4.2 is a follow-up bug, not Layer A / list-chrome scope.
+**Day-1 overlay smoke:** **PASS** (operator `تایید` 2026-09-04 after A4.2 + list-order fixes).  
+**Do not start M7** from this result. Next cutover pointer remains MVP plan **M7-T1** (named-start only).
 
 ## Sign-off
 
 Operator: (reported in chat 2026-09-04)  
-Result: **PASS with A4.2 FAIL** (pause menu/status)  
+Result: **PASS**  
 Date: 2026-09-04  
+Bot HEAD at sign-off: `e716cb83`  
+Cabinet HEAD: `0173edae`

@@ -1244,35 +1244,37 @@ git commit -m "feat(day1): Telegram pause/resume via user_disabled"
 
 ### Task 10: Joint day-1 operator smoke (no code)
 
-**Files:** none in remnabot1 app. Optional evidence note under `docs/superpowers/evidence/` only if the operator asks to record PASS.
+**Files:** none in remnabot1 app. Evidence: `docs/superpowers/evidence/smoke-2026-09-04-day1-overlay.md`.
 
 **Depends on:** Part A Tasks 1–9 **and** Part B Tasks 1–6 (cabinet Layer A, same file).
 
 Do **not** start M7. Do **not** use the production bot token. RC bot is the test token / `@mrj7_bot`.
 
-- [ ] **Step 1: Telegram `/start`**
+**Status:** **PASS** — operator `تایید` 2026-09-04 (incl. A4.2 pause + paused-sub list order). Bot `e716cb83`, cabinet `0173edae`.
+
+- [x] **Step 1: Telegram `/start`**
 
 On the RC test bot: rich 4.2 shell still shows Connect / Subscription / Balance (not the 3.60 grid). Chrome is Persian. Subscription preview fallback date is Jalali for fa. Balance is Toman (already ported).
 
-- [ ] **Step 2: My Subscriptions**
+- [x] **Step 2: My Subscriptions**
 
 Opens paginated list. Title Persian with page/total. Lines use ترافیک / تعداد کاربر / Jalali. Search button works. Gift button still present. If the account has `panel_brand_prefix` + serial, identity looks like `Moonvpn_67258`.
 
-- [ ] **Step 3: Pause (if an active test sub exists)**
+- [x] **Step 3: Pause (if an active test sub exists)**
 
-Detail shows pause. Toggle does not crash. Skip if no safe test subscription.
+Detail shows pause. Confirm → pause → detail/`sm:` OK; paused row stays in active-tier list order (`e716cb83`).
 
-- [ ] **Step 4: Partner confirm (optional)**
+- [x] **Step 4: Partner confirm (optional)**
 
-If an **isolated** approved partner test account exists: confirm keyboard shows note/brand; purchase still uses `PricingEngine` wholesale. Skip if no such account — do not use production C2C admin chat.
+SKIP — no isolated partner test account this round.
 
-- [ ] **Step 5: Cabinet**
+- [x] **Step 5: Cabinet**
 
-`https://panel.rookari.com` first paint fa/RTL, Jalali, wording, subscription sheets — per Layer A smoke map. If Layer A is not finished, report **INCOMPLETE** for the web half; do not block recording Telegram PASS separately.
+`https://panel.rookari.com` first paint fa/RTL, Jalali, wording, subscription sheets — per Layer A smoke map. B1–B5 PASS.
 
-- [ ] **Step 6: Stop**
+- [x] **Step 6: Stop**
 
-Do not start M7-T1 from this smoke. Next cutover pointer remains the MVP plan named-start.
+Do not start M7-T1 from this smoke. Next cutover pointer remains the MVP plan named-start (**M7-T1**).
 
 ---
 

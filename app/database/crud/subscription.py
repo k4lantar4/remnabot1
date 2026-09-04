@@ -3054,6 +3054,7 @@ async def get_subscription_by_id_for_user(db: AsyncSession, subscription_id: int
             Subscription.id == subscription_id,
             Subscription.user_id == user_id,
         )
+        .execution_options(populate_existing=True)
     )
     return result.scalar_one_or_none()
 

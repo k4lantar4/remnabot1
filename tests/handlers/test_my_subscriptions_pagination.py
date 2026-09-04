@@ -163,6 +163,12 @@ def test_pause_uses_confirm_then_execute() -> None:
     assert "startswith('sub_disable_yes:')" in purchase
 
 
+def test_render_detail_does_not_call_expire_all() -> None:
+    src = Path('app/handlers/subscription/my_subscriptions.py').read_text(encoding='utf-8')
+    assert 'db.expire_all()' not in src
+    assert '_render_subscription_detail' in src
+
+
 async def test_receive_my_subs_search_escapes_query_and_rerenders() -> None:
     message = SimpleNamespace(
         text='<script>alert(1)</script>',

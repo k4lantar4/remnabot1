@@ -399,13 +399,15 @@ async def _render_subscription_detail(
     answer: bool = True,
 ) -> None:
     """Render detail for an owned subscription id (IDOR protected)."""
-    # Drop identity-map stale flags after pause/resume commits.
-    db.expire_all()
-    subscription = await get_subscription_by_id_for_user(db, sub_id, db_user.id)
+    # Capture ids before any ORM IO — never expire_all() here: it expires db_user
+    # and a later sync access to db_user.id raises MissingGreenlet (A4 / sm: crash).
+    user_id = int(db_user.id)
+    language = db_user.language
+    subscription = await get_subscription_by_id_for_user(db, sub_id, user_id)
 
     if not subscription:
         await callback.answer(
-            get_texts(db_user.language).t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'),
+            get_texts(language).t('SUBSCRIPTION_NOT_FOUND', 'Подписка не найдена'),
             show_alert=True,
         )
         return
@@ -414,7 +416,7 @@ async def _render_subscription_detail(
     # (e.g. 'subscription_autopay') can resolve the right subscription via FSM.
     await state.update_data(active_subscription_id=sub_id)
 
-    texts = get_texts(db_user.language)
+    texts = get_texts(language)
     display_name = subscription_list_identity(subscription, db_user, texts)
 
     if subscription.traffic_limit_gb == 0:
@@ -424,7 +426,7 @@ async def _render_subscription_detail(
         traffic = f'{used} / {subscription.traffic_limit_gb} GB'
 
     end_date = (
-        format_user_datetime(subscription.end_date, language=db_user.language, fmt='%d.%m.%Y %H:%M')
+        format_user_datetime(subscription.end_date, language=language, fmt='%d.%m.%Y %H:%M')
         if subscription.end_date
         else '—'
     )
@@ -442,7 +444,7 @@ async def _render_subscription_detail(
     if subscription.subscription_url and not settings.should_hide_subscription_link():
         text += f'\n🔗 <code>{subscription.subscription_url}</code>'
 
-    keyboard = _build_subscription_detail_keyboard(sub_id, sub=subscription, language=db_user.language)
+    keyboard = _build_subscription_detail_keyboard(sub_id, sub=subscription, language=language)
 
     if callback.message:
         await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')

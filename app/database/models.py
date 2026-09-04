@@ -2250,6 +2250,7 @@ class User(Base):
     # Партнёрская система
     partner_status = Column(String(20), default=PartnerStatus.NONE.value, nullable=False, index=True)
     wholesale_discount_bps = Column(Integer, default=0, nullable=False)
+    panel_brand_prefix = Column(String(24), nullable=True)
 
     @property
     def is_partner(self) -> bool:
@@ -2425,6 +2426,8 @@ class Subscription(Base):
     remnawave_short_id = Column(
         String(16), nullable=False, unique=True, server_default=''
     )  # Permanent short ID for username suffix
+    purchase_note = Column(Text, nullable=True)
+    user_disabled = Column(Boolean, default=False, nullable=False)
 
     # Тариф (для режима продаж "Тарифы")
     tariff_id = Column(Integer, ForeignKey('tariffs.id', ondelete='RESTRICT'), nullable=True, index=True)

@@ -91,18 +91,23 @@ async def enable_user_subscription(
     panel_ok = False
     if panel_id:
         panel_ok = await service.enable_remnawave_user(int(panel_id), db=db)
+
     if not panel_ok:
+        subscription.last_webhook_update_at = now
+        subscription.user_disabled = False
+        await reactivate_subscription(db, subscription, commit=False)
+        if subscription.is_daily_tariff:
+            subscription.is_daily_paused = False
+
         result = await service.create_remnawave_user(db, subscription, reset_traffic=False)
-        panel_ok = bool(result)
-    if not panel_ok:
-        await _raise_panel_error(db, 'Failed to enable VPN access on panel')
-
-    subscription.last_webhook_update_at = now
-    subscription.user_disabled = False
-    await reactivate_subscription(db, subscription, commit=False)
-
-    if subscription.is_daily_tariff:
-        subscription.is_daily_paused = False
+        if not result:
+            await _raise_panel_error(db, 'Failed to enable VPN access on panel')
+    else:
+        subscription.last_webhook_update_at = now
+        subscription.user_disabled = False
+        await reactivate_subscription(db, subscription, commit=False)
+        if subscription.is_daily_tariff:
+            subscription.is_daily_paused = False
 
     await db.commit()
     await db.refresh(subscription)

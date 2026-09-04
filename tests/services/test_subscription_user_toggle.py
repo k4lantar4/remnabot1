@@ -171,8 +171,8 @@ async def test_enable_panel_failure_raises_without_flipping_flag() -> None:
         with pytest.raises(SubscriptionToggleError) as exc:
             await enable_user_subscription(db, sub, SimpleNamespace(id=2))
     assert exc.value.code == 'panel_error'
-    assert sub.user_disabled is True
-    react.assert_not_awaited()
+    react.assert_awaited()
+    svc_cls.return_value.create_remnawave_user.assert_awaited()
     db.rollback.assert_awaited()
     db.commit.assert_not_awaited()
 
@@ -190,18 +190,30 @@ async def test_enable_recreates_when_panel_enable_fails() -> None:
     )
     db = AsyncMock()
     created = SimpleNamespace(id=99)
+    call_order: list[str] = []
+
+    async def track_reactivate(*_args, **_kwargs) -> None:
+        call_order.append('reactivate')
+
+    async def track_create(_db, subscription, *, reset_traffic=False):
+        call_order.append('create')
+        assert subscription.user_disabled is False
+        return created
+
     with (
         patch(
             'app.services.subscription_user_toggle_service.reactivate_subscription',
             new_callable=AsyncMock,
+            side_effect=track_reactivate,
         ) as react,
         patch('app.services.subscription_user_toggle_service.SubscriptionService') as svc_cls,
     ):
         svc_cls.return_value.enable_remnawave_user = AsyncMock(return_value=False)
-        svc_cls.return_value.create_remnawave_user = AsyncMock(return_value=created)
+        svc_cls.return_value.create_remnawave_user = AsyncMock(side_effect=track_create)
         result = await enable_user_subscription(db, sub, SimpleNamespace(id=2))
     assert result.user_disabled is False
     react.assert_awaited()
     svc_cls.return_value.create_remnawave_user.assert_awaited()
+    assert call_order == ['reactivate', 'create']
     db.commit.assert_awaited()
     db.rollback.assert_not_awaited()

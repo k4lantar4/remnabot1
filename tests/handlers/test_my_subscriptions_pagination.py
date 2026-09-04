@@ -23,6 +23,7 @@ from app.handlers.subscription.my_subscriptions import (
     paginate_items,
     parse_my_subs_page,
 )
+from app.utils.subscription_list_display import format_subscription_list_line
 
 
 def _fake_sub(i: int):
@@ -56,12 +57,43 @@ def test_paginate_116_subscriptions_fits_page_size() -> None:
     assert len(last) == 1
 
 
+def test_list_source_has_no_hardcoded_cyrillic() -> None:
+    src = Path('app/handlers/subscription/my_subscriptions.py').read_text(encoding='utf-8')
+    for needle in ('Устройства', 'Мои подписки', 'Трафик:', 'Назад'):
+        assert needle not in src, needle
+
+
+def test_page_caption_uses_helper_and_fits() -> None:
+    items = [_fake_sub(i) for i in range(5)]
+    user = SimpleNamespace(is_partner=False, panel_brand_prefix=None)
+
+    class T:
+        language = 'fa'
+
+        def t(self, key, default=None):
+            return default or key
+
+    lines = ['title\n']
+    for idx, sub in enumerate(items, 1):
+        lines.append(format_subscription_list_line(sub, idx, T(), 'fa', user))
+    assert len('\n'.join(lines)) <= 1024
+
+
 def test_page_caption_fits_telegram_limit() -> None:
     items = [_fake_sub(i) for i in range(116)]
     page_items, _, total_pages = paginate_items(items, 1, MY_SUBS_PAGE_SIZE)
-    lines = [f'📋 <b>Мои подписки</b> (1/{total_pages})\n']
+    user = SimpleNamespace(is_partner=False, panel_brand_prefix=None)
+
+    class T:
+        language = 'fa'
+
+        def t(self, key, default=None):
+            return default or key
+
+    title = T().t('MY_SUB_LIST_TITLE')
+    lines = [f'{title} (1/{total_pages})\n']
     for idx, sub in enumerate(page_items, 1):
-        lines.append(_format_subscription_line(sub, idx))
+        lines.append(format_subscription_list_line(sub, idx, T(), 'fa', user))
         lines.append('')
     text = '\n'.join(lines)
     assert len(text) <= 1024

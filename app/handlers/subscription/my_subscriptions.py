@@ -24,7 +24,9 @@ from app.localization.texts import Texts, get_texts
 from app.services.subscription_service import SubscriptionService
 from app.utils.jalali_datetime import format_user_datetime
 from app.utils.photo_message import edit_or_answer_photo
+from app.states import SubscriptionStates
 from app.utils.subscription_list_display import (
+    filter_subscriptions_by_query,
     format_subscription_list_line,
     subscription_list_identity,
 )
@@ -97,6 +99,8 @@ def _build_subscriptions_keyboard(
     page: int = 1,
     total_pages: int = 1,
     db_user=None,
+    show_search: bool = False,
+    search_query: str = '',
 ) -> types.InlineKeyboardMarkup:
     """Build inline keyboard with per-subscription management buttons."""
     texts = get_texts(language)
@@ -118,6 +122,25 @@ def _build_subscriptions_keyboard(
             types.InlineKeyboardButton(text=f'➕ {buy_text}', callback_data='menu_buy'),
         ]
     )
+    if show_search:
+        if search_query:
+            buttons.append(
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('MY_SUB_SEARCH_RESET', '❌ Сбросить поиск'),
+                        callback_data='my_subs_search_reset',
+                    )
+                ]
+            )
+        else:
+            buttons.append(
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('MY_SUB_SEARCH', '🔍 Поиск'),
+                        callback_data='my_subs_search',
+                    )
+                ]
+            )
     if gift_enabled:
         buttons.append(
             [
@@ -207,6 +230,11 @@ async def show_my_subscriptions(
     subscriptions = await get_all_subscriptions_by_user_id(db, db_user.id)
     page = parse_my_subs_page(callback.data)
 
+    search_query = ''
+    if state:
+        data = await state.get_data()
+        search_query = (data.get('my_subs_search_query') or '').strip()
+
     if not subscriptions:
         text = texts.t('MY_SUB_LIST_EMPTY')
         buttons = [
@@ -224,26 +252,87 @@ async def show_my_subscriptions(
         buttons.append([types.InlineKeyboardButton(text=texts.t('MY_SUB_BACK'), callback_data='back_to_menu')])
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     else:
-        page_items, page, total_pages = paginate_items(subscriptions, page, MY_SUBS_PAGE_SIZE)
-        start_idx = (page - 1) * MY_SUBS_PAGE_SIZE
-        title = texts.t('MY_SUB_LIST_TITLE')
-        lines = [f'{title} ({page}/{total_pages})\n']
-        for idx, sub in enumerate(page_items, start_idx + 1):
-            lines.append(format_subscription_list_line(sub, idx, texts, db_user.language, db_user))
-            lines.append('')
-        text = '\n'.join(lines)
-        keyboard = _build_subscriptions_keyboard(
-            page_items,
-            db_user.language,
-            gift_enabled=gift_enabled,
-            page=page,
-            total_pages=total_pages,
-            db_user=db_user,
+        visible = (
+            filter_subscriptions_by_query(subscriptions, search_query, texts, db_user)
+            if search_query
+            else subscriptions
         )
+        if search_query and not visible:
+            text = texts.t('MY_SUB_SEARCH_NO_RESULTS', 'Ничего не найдено.')
+            page_items: list = []
+            page = 1
+            total_pages = 1
+            keyboard = _build_subscriptions_keyboard(
+                page_items,
+                db_user.language,
+                gift_enabled=gift_enabled,
+                page=page,
+                total_pages=total_pages,
+                db_user=db_user,
+                show_search=True,
+                search_query=search_query,
+            )
+        else:
+            page_items, page, total_pages = paginate_items(visible, page, MY_SUBS_PAGE_SIZE)
+            start_idx = (page - 1) * MY_SUBS_PAGE_SIZE
+            title = texts.t('MY_SUB_LIST_TITLE')
+            lines = [f'{title} ({page}/{total_pages})\n']
+            for idx, sub in enumerate(page_items, start_idx + 1):
+                lines.append(format_subscription_list_line(sub, idx, texts, db_user.language, db_user))
+                lines.append('')
+            text = '\n'.join(lines)
+            keyboard = _build_subscriptions_keyboard(
+                page_items,
+                db_user.language,
+                gift_enabled=gift_enabled,
+                page=page,
+                total_pages=total_pages,
+                db_user=db_user,
+                show_search=True,
+                search_query=search_query,
+            )
 
     if callback.message:
         await edit_or_answer_photo(callback, text, keyboard, parse_mode='HTML')
     await callback.answer()
+
+
+async def start_my_subs_search(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    texts = get_texts(db_user.language)
+    await callback.answer()
+    await state.set_state(SubscriptionStates.searching_my_subscriptions)
+    await callback.message.answer(texts.t('MY_SUB_SEARCH_PROMPT', 'Введите текст поиска'))
+
+
+async def reset_my_subs_search(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    await state.update_data(my_subs_search_query=None)
+    await show_my_subscriptions(callback, db_user, db, state)
+
+
+async def receive_my_subs_search(
+    message: types.Message,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    texts = get_texts(db_user.language)
+    raw = (message.text or '').strip()
+    if not raw:
+        await message.answer(texts.t('MY_SUB_SEARCH_EMPTY_QUERY', '❌ Введите текст'))
+        return
+    await state.update_data(my_subs_search_query=raw)
+    await state.set_state(None)
+    await message.answer(texts.t('MY_SUB_SEARCH_ACTIVE', 'Поиск: {query}').format(query=raw))
 
 
 async def show_subscription_detail(

@@ -114,3 +114,18 @@ def test_keyboard_keeps_buy_and_does_not_dump_all_rows() -> None:
     assert 'ms_pg:1' not in callbacks
     assert len(callbacks) < 20
     assert all(cb != 'sm:100' for cb in callbacks)
+
+
+def test_keyboard_includes_search_and_keeps_gift() -> None:
+    page_items = [_fake_sub(i) for i in range(1, 3)]
+    keyboard = _build_subscriptions_keyboard(
+        page_items,
+        'fa',
+        gift_enabled=True,
+        page=1,
+        total_pages=1,
+        show_search=True,
+    )
+    callbacks = [b.callback_data for row in keyboard.inline_keyboard for b in row]
+    assert 'my_subs_search' in callbacks
+    assert 'subscription_gift' in callbacks

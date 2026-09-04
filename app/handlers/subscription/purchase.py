@@ -4087,6 +4087,16 @@ def register_handlers(dp: Dispatcher):
 
     dp.callback_query.register(show_my_subscriptions, F.data == 'my_subscriptions')
     dp.callback_query.register(show_my_subscriptions, F.data.startswith('ms_pg:'))
+    from app.handlers.subscription.my_subscriptions import (
+        receive_my_subs_search,
+        reset_my_subs_search,
+        start_my_subs_search,
+    )
+    from app.states import SubscriptionStates
+
+    dp.callback_query.register(start_my_subs_search, F.data == 'my_subs_search')
+    dp.callback_query.register(reset_my_subs_search, F.data == 'my_subs_search_reset')
+    dp.message.register(receive_my_subs_search, SubscriptionStates.searching_my_subscriptions)
     dp.callback_query.register(show_subscription_detail, F.data.startswith('sm:'))
 
     # Multi-tariff delegation handlers from subscription detail view

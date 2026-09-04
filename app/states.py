@@ -34,6 +34,8 @@ class SubscriptionStates(StatesGroup):
     # передаются через state data, чтобы вернуться к ровно тому же списку.
     renaming_device = State()
 
+    searching_my_subscriptions = State()
+
 
 class GiftPurchaseStates(StatesGroup):
     selecting_tariff = State()
